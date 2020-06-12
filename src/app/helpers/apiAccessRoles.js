@@ -4,7 +4,7 @@ module.exports = {
     'course/update': ['CONTENT_CREATOR', 'CONTENT_CREATION', 'CONTENT_REVIEWER', 'OWNER'],
     'course/review': ['CONTENT_CREATOR', 'CONTENT_CREATION', 'CONTENT_REVIEWER', 'CONTENT_REVIEW'],
     'course/publish': ['CONTENT_REVIEWER', 'CONTENT_REVIEW'],
-    'course/state/update': ['OWNER']
+    'course/state/update': ['COURSE_ENROLL_OWNER']
   },
   isPublic: {
     '/learner/data/v1/system/settings/get/custodianOrgId': ['PUBLIC'],
