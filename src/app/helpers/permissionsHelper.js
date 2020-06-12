@@ -172,49 +172,80 @@ let PERMISSIONS_HELPER = {
   },
   checkPermission: function () {
     return function (req, res, next) {
-      if (enablePermissionCheck && req.session['roles'] && req.session['roles'].length) {
-        var roles = module.exports.checkURLMatch(req.originalUrl)
-        if (_.isArray(roles)) {
-          if (_.intersection(roles, req.session['roles']).length > 0) {
-            next()
-          } else {
-            res.status(401)
-            res.send({
-              'id': 'api.error',
-              'ver': '1.0',
-              'ts': dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss:lo'),
-              'params': {
-                'resmsgid': uuidv1(),
-                'msgid': null,
-                'status': 'failed',
-                'err': 'UNAUTHORIZED_ERROR',
-                'errmsg': 'Unauthorized: Access is denied'
-              },
-              'responseCode': 'UNAUTHORIZED',
-              'result': {}
-            })
-            res.end()
-          }
-        } else {
+      // if (enablePermissionCheck && req.session['roles'] && req.session['roles'].length) {
+      //   var roles = module.exports.checkURLMatch(req.originalUrl)
+      //   if (_.isArray(roles)) {
+      //     if (_.intersection(roles, req.session['roles']).length > 0) {
+      //       next()
+      //     } else {
+      //       res.status(401)
+      //       res.send({
+      //         'id': 'api.error',
+      //         'ver': '1.0',
+      //         'ts': dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss:lo'),
+      //         'params': {
+      //           'resmsgid': uuidv1(),
+      //           'msgid': null,
+      //           'status': 'failed',
+      //           'err': 'UNAUTHORIZED_ERROR',
+      //           'errmsg': 'Unauthorized: Access is denied'
+      //         },
+      //         'responseCode': 'UNAUTHORIZED',
+      //         'result': {}
+      //       })
+      //       res.end()
+      //     }
+      //   } else {
+      //     next()
+      //   }
+      // } else {
+      //   next()
+      // }
+
+      const rolesForURL = _.get(module.exports.ROLES_URLS, req.originalUrl);
+      // Check permission flag is enabled and the request URL is listed in `ROLES_URLS`
+      if (enablePermissionCheck && _.isArray(rolesForURL) && !_.isEmpty(rolesForURL)) {
+        // ROLES must match atleast 1 defined for request URL in `ROLES_URLS`
+        if (_.intersection(rolesForURL, req.session['roles']).length > 0) {
           next()
+        } else {
+          res.status(401);
+          res.send({
+            id: 'api.error',
+            ver: '1.0',
+            ts: dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss:lo'),
+            params: {
+              resmsgid: uuidv1(),
+              msgid: null,
+              status: 'failed',
+              err: 'UNAUTHORIZED_ERROR',
+              errmsg: 'Unauthorized: Access is denied'
+            },
+            responseCode: 'UNAUTHORIZED',
+            result: {}
+          });
+          res.end();
         }
       } else {
-        next()
+        // ROLE_CHECK is not required; since request URL is not listed in ROLES_URLS
+        // Forward the request
+        next();
       }
     }
   },
   checkURLMatch: function (url) {
-    var roles = []
-    _.forEach(module.exports.ROLES_URLS, function (value, key) {
-      if (url.indexOf(key) > -1) {
-        roles = value
-        return false
-      }
-    })
-    if (roles.length) {
-      return roles
-    }
-    return false
+    // var roles = []
+    // _.forEach(module.exports.ROLES_URLS, function (value, key) {
+    //   if (url.indexOf(key) > -1) {
+    //     roles = value
+    //     return false
+    //   }
+    // })
+    // if (roles.length) {
+    //   return roles
+    // }
+    // return false    
+    return _.get(module.exports.ROLES_URLS, url);
   }
 }
 module.exports = PERMISSIONS_HELPER
