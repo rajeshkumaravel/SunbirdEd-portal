@@ -15,6 +15,7 @@ module.exports = {
 const _ = require('lodash')
 let URL = 'course/create';
 
+// --------------------------- checkRole middleware ---------------------------
 // Check incoming URL needs to be validated for `ROLES`
 if (_.get(this.hasAccess, URL)) {
   
@@ -22,20 +23,30 @@ if (_.get(this.hasAccess, URL)) {
   if (_.intersection(this.hasAccess, req.session['roles']).length > 0) {
     
     // +++++ Consider the request to be `VALID` and `AUTHENTIC`
-    
 
   } else {
-    // +++++ 401 UNAUTHORIZED ACCESS
+    // +++++ 403 Forbidden ACCESS
   }
-}
-
-// Check whether incoming URL is defined for `PUBLIC` access
-else if (_.get(this.isPublic, URL)) {
+} else if (_.get(this.isPublic, URL)) { // Check whether incoming URL is defined for `PUBLIC` access
 
   // +++++ Consider the request to be `VALID` and `AUTHENTIC`
 
 } else {
-  // +++++ 401 UNAUTHORIZED ACCESS
+  // +++++ 403 Forbidden ACCESS
   // Since the API is not listed in any of the above mentioned category
   // the request is considered to be unauthorized
+}
+
+
+// --------------------------- checkOwner middleware ---------------------------
+// Check incoming URL needs to be validated for `OWNER_CHECK`
+if (_.get(this.hasAccess, URL)) {
+  // Based on type of check
+  // Example
+  // `COURSE_ENROLL_OWNER`
+  // `CONTENT_OWNER`
+  // `USER_OWNER`
+  // Take necessary action based on above type of check
+} else {
+  // +++++ 403 Forbidden ACCESS
 }
