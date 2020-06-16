@@ -119,6 +119,25 @@ const allowedUrls = function() {
 
 const isWhitelistUrl = function() {
     return function (req, res, next) {
+
+        const UrlPattern = require('url-pattern');
+        // var pattern1 = new UrlPattern('/test(/:id)');
+        var pattern1 = new UrlPattern('/learner/course/v1/user/enrollment/list(/:userId)');
+        const orgURL    = req.originalUrl;
+        const parsedURL = req.path;
+        const isValid   = pattern1.match(parsedURL);
+        console.log('Original URL  - ', orgURL);
+        console.log('Parsed URL    - ', parsedURL);
+        console.log('Pattern Match - ', isValid);
+        if (isValid) {
+            console.log('_________________________________START______________________________________________'); // TODO: log!
+            console.log(req.url); // TODO: log!
+            console.log(req.originalUrl); // TODO: log!
+            console.log(req.params); // TODO: log!
+            console.log(req.route.path); // TODO: log!
+            console.log(req.mountpath); // TODO: log!
+            console.log('_________________________________ENDED______________________________________________'); // TODO: log!
+        }
         var reqUrl = req.originalUrl.replace('/learner/', '');
         // var reqUrl = req.originalUrl;
         var validUrl = false;

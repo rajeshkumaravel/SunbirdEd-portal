@@ -6,9 +6,10 @@ module.exports = {
     'course/publish': ['CONTENT_REVIEWER', 'CONTENT_REVIEW'],
     'course/state/update': ['COURSE_ENROLL_OWNER']
   },
-  isPublic: {
-    '/learner/data/v1/system/settings/get/custodianOrgId': ['PUBLIC'],
-    '/learner/data/v1/system/settings/get/ntp': ['PUBLIC']
+  'course/update': {
+    checksNeeded: ['ROLE_CHECK','OWNER_CHECK'],
+    ROLE_CHECK: ['CONTENT_CREATOR', 'CONTENT_CREATION', 'CONTENT_REVIEWER'],
+    OWNER_CHECK: ['OWNER']
   }
 };
 
