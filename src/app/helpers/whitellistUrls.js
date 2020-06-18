@@ -126,10 +126,21 @@ const isWhitelistUrl = function() {
         const orgURL    = req.originalUrl;
         const parsedURL = req.path;
         const isValid   = pattern1.match(parsedURL);
-        console.log('Original URL  - ', orgURL);
-        console.log('Parsed URL    - ', parsedURL);
-        console.log('Pattern Match - ', isValid);
+        console.log('=============================================='); // TODO: log!
+        var url = require("url");
+    // console.log(req.path); // TODO: log!
+    // console.log(url.parse(req.path));
+    //     console.log(req.route.path); // TODO: log!
+    //     console.log(req.url); // TODO: log!
+    //     console.log(req.originalUrl); // TODO: log!
+    //     console.log(req.params); // TODO: log!
+    //     console.log(req.route.path); // TODO: log!
+    //     console.log(req.path); // TODO: log!
+        console.log('=============================================='); // TODO: log!
         if (isValid) {
+            console.log('Original URL  - ', orgURL);
+            console.log('Parsed URL    - ', parsedURL);
+            console.log('Pattern Match - ', isValid);
             console.log('_________________________________START______________________________________________'); // TODO: log!
             console.log(req.url); // TODO: log!
             console.log(req.originalUrl); // TODO: log!
@@ -138,6 +149,7 @@ const isWhitelistUrl = function() {
             console.log(req.mountpath); // TODO: log!
             console.log('_________________________________ENDED______________________________________________'); // TODO: log!
         }
+        next();
         var reqUrl = req.originalUrl.replace('/learner/', '');
         // var reqUrl = req.originalUrl;
         var validUrl = false;

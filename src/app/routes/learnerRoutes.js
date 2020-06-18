@@ -111,6 +111,21 @@ module.exports = function (app) {
     checkForValidUser()
   )
 
+  
+  // app.all('/learner/user/v2/read/:userId', function (req, res) {
+  //   console.log('======```````````````````````````````````````````````````````````````````````========================================'); // TODO: log!
+  //   var url = require("url");
+  //   console.log(req.path); // TODO: log!
+  //   console.log(url.parse(req.path));
+  //   console.log(req.route.path); // TODO: log!
+  //   console.log(req.url); // TODO: log!
+  //   console.log(req.originalUrl); // TODO: log!
+  //   console.log(req.params); // TODO: log!
+  //   console.log(req.route.path); // TODO: log!
+  //   console.log(req.route); // TODO: log!
+  //   console.log('========================````````````````````````````````````````````======================'); // TODO: log!
+  //   whitelistUrls.isWhitelistUrl()
+  // });
   app.all('/learner/*',
     healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
     whitelistUrls.isWhitelistUrl(),
@@ -146,6 +161,24 @@ module.exports = function (app) {
         }
       }
     }))
+  
+    var forE = ['/learner/user/v2/read/:userId'];
+  forE.forEach(function(path) {
+    app.all(path,   
+     ((req) => {
+      console.log('======```````````````````````````````````````````````````````````````````````========================================'); // TODO: log!
+      var url = require("url");
+      console.log(req.path); // TODO: log!
+      console.log(url.parse(req.path));
+      console.log(req.route.path); // TODO: log!
+      console.log(req.url); // TODO: log!
+      console.log(req.originalUrl); // TODO: log!
+      console.log(req.params); // TODO: log!
+      console.log(req.route.path); // TODO: log!
+      console.log('========================````````````````````````````````````````````======================'); // TODO: log!
+     })
+    );
+  });
 }
 
 function checkForValidUser (){
