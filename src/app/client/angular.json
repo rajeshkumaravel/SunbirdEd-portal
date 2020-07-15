@@ -176,7 +176,10 @@
               "src/app/testUtil/index.ts",
               "src/app/client/src/**/*.spec.ts",
               "src/app/client/src/**/*.spec.data.ts",
-              "src/app/client/src/**/*.module.ts"
+              "src/app/client/src/**/*.module.ts",
+              "src/app/client/src/app/modules/cbse-program/**",
+              "src/app/client/src/app/modules/program/**",
+              "src/app/client/src/environments/**"
             ]
           }
         },
