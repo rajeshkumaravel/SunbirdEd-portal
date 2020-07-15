@@ -24,8 +24,16 @@ module.exports = function (config) {
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
     coverageIstanbulReporter: {
-      dir: require('path').join(__dirname, 'coverage'), reports: [ 'html', 'lcovonly' ],
-      fixWebpackSourcePaths: true
+      dir: require('path').join(__dirname, 'coverage'), reports: [ 'html', 'lcovonly', 'text-summary' ],
+      // if using webpack and pre-loaders, work around webpack breaking the source path
+      fixWebpackSourcePaths: true,
+
+      // Combines coverage information from multiple browsers into one report rather than outputting a report
+      // for each browser.
+      combineBrowserReports: true,
+ 
+      // Omit files with no statements, no functions and no branches covered from the report
+      skipFilesWithNoCoverage: true
     },
     
     reporters: ['mocha'],
