@@ -1,28 +1,31 @@
-const proxyUtils = require('../proxy/proxyUtils.js')
-const permissionsHelper = require('../helpers/permissionsHelper.js')
-const envHelper = require('../helpers/environmentVariablesHelper.js')
-const learnerURL = envHelper.LEARNER_URL
-const telemetryHelper = require('../helpers/telemetryHelper.js')
-const reqDataLimitOfContentUpload = '50mb'
-const proxy = require('express-http-proxy')
-const bodyParser = require('body-parser')
-const healthService = require('../helpers/healthCheckService.js')
-const logger = require('sb_logger_util_v2')
-const whitelistUrls = require('../helpers/whitellistUrls.js')
-const {decrypt} = require('../helpers/crypto');
-const {parseJson, isDateExpired, decodeNChkTime} = require('../helpers/utilityService');
-const isAPIWhitelisted = require('../helpers/apiWhiteList');
-const googleService = require('../helpers/googleService')
+/**
+ * @file
+ * @description - Learner routes handler
+ * @version 1.0
+ */
 
-const _ = require('lodash');
+const proxyUtils        = require('../proxy/proxyUtils.js')
+const permissionsHelper = require('../helpers/permissionsHelper.js')
+const envHelper         = require('../helpers/environmentVariablesHelper.js')
+const learnerURL        = envHelper.LEARNER_URL
+const telemetryHelper   = require('../helpers/telemetryHelper.js')
+const proxy             = require('express-http-proxy')
+const bodyParser        = require('body-parser')
+const healthService     = require('../helpers/healthCheckService.js')
+const logger            = require('sb_logger_util_v2')
+const { decrypt }       = require('../helpers/crypto');
+const isAPIWhitelisted  = require('../helpers/apiWhiteList');
+const googleService     = require('../helpers/googleService')
+const _                 = require('lodash');
+const reqDataLimitOfContentUpload = '50mb'
+const { parseJson, isDateExpired, decodeNChkTime } = require('../helpers/utilityService');
 
 module.exports = function (app) {
-
   require('./accountRecoveryRoute.js')(app) // account recovery route
 
-  // helper route to enable enable admin to update user fields
+  // Helper route to enable enable admin to update user fields
   app.patch('/learner/portal/user/v1/update',
-    proxyUtils.verifyToken(),permissionsHelper.checkPermission(),
+    proxyUtils.verifyToken(),
     proxy(envHelper.learner_Service_Local_BaseUrl, {
       proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
       proxyReqPathResolver: (req) => {
@@ -30,36 +33,29 @@ module.exports = function (app) {
       },
       userResDecorator: (proxyRes, proxyResData, req, res) => {
         try {
-          logger.info({msg: '/learner/portal/user/v1/update called'});
-            const data = JSON.parse(proxyResData.toString('utf8'));
-            if(req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
-            else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
-        } catch(err) {
-          logger.error({msg:'content api user res decorator json parse error:', proxyResData});
-            return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
+          logger.info({ msg: '/learner/portal/user/v1/update called' });
+          const data = JSON.parse(proxyResData.toString('utf8'));
+          if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
+          else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
+        } catch (err) {
+          logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData });
+          return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
         }
       }
-  }))
-
-  app.get('/learner/user/v1/managed/*',
-    healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
-    proxyManagedUserRequest()
+    })
   )
 
-  app.get('/learner/user/v1/exists/email/:emailId',
-    googleService.validateRecaptcha
-  );
+  app.get('/learner/user/v1/managed/*', proxyManagedUserRequest());
 
-  app.get('/learner/user/v1/exists/phone/:phoneNumber',
-    googleService.validateRecaptcha
-  );
+  // Route to check user email id exists (or) already registered
+  app.get('/learner/user/v1/exists/email/:emailId', googleService.validateRecaptcha);
+
+  // Route to check user phone number exists (or) already registered
+  app.get('/learner/user/v1/exists/phone/:phoneNumber', googleService.validateRecaptcha);
 
   app.post('/learner/anonymous/otp/v1/generate', googleService.validateRecaptcha);
 
-  // Generate telemetry fot proxy service
-  app.all('/learner/*', telemetryHelper.generateTelemetryForLearnerService,
-    telemetryHelper.generateTelemetryForProxy)
-
+  // TBD - profile image upload API - is still being used ?
   app.post('/learner/content/v1/media/upload',
     proxyUtils.verifyToken(),
     permissionsHelper.checkPermission(),
@@ -69,9 +65,9 @@ module.exports = function (app) {
       proxyReqPathResolver: function (req) {
         return require('url').parse(learnerURL + '/content/v1/media/upload').path
       },
-      userResDecorator: function (proxyRes, proxyResData,  req, res) {
+      userResDecorator: function (proxyRes, proxyResData, req, res) {
         try {
-          logger.info({msg: '/learner/content/v1/media/upload called'});
+          logger.info({ msg: '/learner/content/v1/media/upload called' });
           let data = JSON.parse(proxyResData.toString('utf8'))
           if (data.responseCode === 'OK') {
             data.success = true
@@ -79,14 +75,14 @@ module.exports = function (app) {
           }
           else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
         } catch (err) {
-          logger.error({msg:'content api user res decorator json parse error:', proxyResData})
+          logger.error({ msg: 'content api user res decorator json parse error:', proxyResData })
           return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
         }
       }
-    }))
+    })
+  )
 
   app.all('/learner/data/v1/role/read',
-    permissionsHelper.checkPermission(),
     proxy(learnerURL, {
       limit: reqDataLimitOfContentUpload,
       proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
@@ -99,41 +95,38 @@ module.exports = function (app) {
           return require('url').parse(learnerURL + urlParam).path
         }
       },
-      userResDecorator: function (proxyRes, proxyResData,  req, res) {
+      userResDecorator: function (proxyRes, proxyResData, req, res) {
         try {
-          logger.info({msg: '/learner/data/v1/role/read called'});
+          logger.info({ msg: '/learner/data/v1/role/read called' });
           let data = JSON.parse(proxyResData.toString('utf8'))
-          if(req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
+          if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
           else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
         } catch (err) {
-          logger.error({msg:'content api user res decorator json parse error:', proxyResData})
+          logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData })
           return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
         }
       }
-    }))
+    })
+  )
+
+  // Route to check user email exists - SSO update contact workflow
+  app.all('/learner/user/v1/get/email/*', proxyObj());
   
-  app.all('/learner/user/v1/get/phone/*',
-    permissionsHelper.checkPermission(),
-    proxyObj()
-  )
+  // Route to check user phone exists - SSO update contact workflow
+  app.all('/learner/user/v1/get/phone/*', proxyObj());
 
-  app.all('/learner/user/v1/get/email/*',
-    permissionsHelper.checkPermission(),
-    proxyObj()
-  )
-
-
+  // Route to handle user registration
   app.all('/learner/user/v1/signup',
     healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
-    permissionsHelper.checkPermission(),
     checkForValidUser()
-  )
+  );
 
-  app.all('/learner/*', bodyParser.json(),
-    healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
-    // To be removed from release-3.2.0
-    // whitelistUrls.isWhitelistUrl(),
+  app.all('/learner/*',
+    bodyParser.json(),
     isAPIWhitelisted.isAllowed(),
+    telemetryHelper.generateTelemetryForLearnerService,
+    telemetryHelper.generateTelemetryForProxy,
+    healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
     permissionsHelper.checkPermission(),
     proxy(learnerURL, {
       limit: reqDataLimitOfContentUpload,
@@ -142,30 +135,27 @@ module.exports = function (app) {
         let urlParam = req.params['0']
         let query = require('url').parse(req.url).query
         if (urlParam.indexOf('anonymous') > -1) urlParam = urlParam.replace('anonymous/', '');
-        // TODO: This should be generic, all the requests should add logs 
-        // Body should be logged only for non-secure data
-        if(req.url.indexOf('/otp/') > 0){
+        if (req.url.indexOf('/otp/') > 0) {
           proxyUtils.addReqLog(req);
         }
-
         if (query) {
           return require('url').parse(learnerURL + urlParam + '?' + query).path
         } else {
           return require('url').parse(learnerURL + urlParam).path
         }
-        
       },
       userResDecorator: (proxyRes, proxyResData, req, res) => {
         try {
-            const data = JSON.parse(proxyResData.toString('utf8'));
-            if(req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
-            else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
-        } catch(err) {
-          logger.error({msg:'content api user res decorator json parse error:', proxyResData, error: JSON.stringify(err)})
-            return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
+          const data = JSON.parse(proxyResData.toString('utf8'));
+          if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
+          else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
+        } catch (err) {
+          logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData, error: JSON.stringify(err) })
+          return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
         }
       }
-    }))
+    })
+  )
 }
 
 function proxyManagedUserRequest() {
@@ -192,14 +182,14 @@ function proxyManagedUserRequest() {
         if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
         else return proxyUtils.handleSessionExpiry(proxyRes, data, req, res, data);
       } catch (err) {
-        logger.error({msg: 'content api user res decorator json parse error:', proxyResData})
+        logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData })
         return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
       }
     }
   });
 }
 
-function checkForValidUser (){
+function checkForValidUser() {
   return proxy(learnerURL, {
     limit: reqDataLimitOfContentUpload,
     proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
@@ -209,31 +199,31 @@ function checkForValidUser (){
       var reqPhone = data.request['phone'];
       var reqValidator = data.request['reqData'];
       var decodedValidator = decodeNChkTime(reqValidator);
-      if((decodedValidator['key']) && (reqEmail === decodedValidator['key'] || reqPhone === decodedValidator['key'])){
+      if ((decodedValidator['key']) && (reqEmail === decodedValidator['key'] || reqPhone === decodedValidator['key'])) {
         data = _.omit(data, 'request.reqData');
         return data;
-      } else{
-        throw new Error('USER_CANNOTBE_CREATED');
+      } else {
+        throw new Error('USER_CANNOT_BE_CREATED');
       }
     },
     proxyReqPathResolver: function (req) {
       return require('url').parse(envHelper.LEARNER_URL + req.originalUrl.replace('/learner/', '')).path
     },
-    userResDecorator: function (proxyRes, proxyResData,  req, res) {
+    userResDecorator: function (proxyRes, proxyResData, req, res) {
       try {
-        logger.info({msg: 'proxyObj'});
+        logger.info({ msg: 'proxyObj' });
         let data = JSON.parse(proxyResData.toString('utf8'));
         let response = data.result.response;
-        data.result.response = {id: '', rootOrgId: '',isUserExists:''};
+        data.result.response = { id: '', rootOrgId: '', isUserExists: '' };
         if (data.responseCode === 'OK') {
           data.result.response.id = response.id;
           data.result.response.rootOrgId = response.rootOrgId;
           data.result.response.isUserExists = true;
         }
-        if(req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
+        if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
         else return proxyUtils.handleSessionExpiry(proxyRes, data, req, res, data);
       } catch (err) {
-        logger.error({msg:'content api user res decorator json parse error:', proxyResData})
+        logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData })
         return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
       }
     }
@@ -267,7 +257,7 @@ function proxyObj (){
         if(req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
         else return proxyUtils.handleSessionExpiry(proxyRes, data, req, res, data);
       } catch (err) {
-        logger.error({msg:'content api user res decorator json parse error:', proxyResData})
+        logger.error({msg:'learner route : userResDecorator json parse error:', proxyResData})
         return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
       }
     }
