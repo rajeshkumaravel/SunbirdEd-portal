@@ -27,7 +27,8 @@ module.exports = function (app) {
   app.patch('/learner/portal/user/v1/update',
     proxyUtils.verifyToken(),
     proxy(envHelper.learner_Service_Local_BaseUrl, {
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+      timeout: envHelper.sunbird_api_request_timeout,
+      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(envHelper.learner_Service_Local_BaseUrl),
       proxyReqPathResolver: (req) => {
         return '/private/user/v1/update';
       },
@@ -61,7 +62,8 @@ module.exports = function (app) {
     permissionsHelper.checkPermission(),
     proxy(learnerURL, {
       limit: reqDataLimitOfContentUpload,
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+      timeout: envHelper.sunbird_api_request_timeout,
+      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
       proxyReqPathResolver: function (req) {
         return require('url').parse(learnerURL + '/content/v1/media/upload').path
       },
@@ -84,8 +86,9 @@ module.exports = function (app) {
 
   app.all('/learner/data/v1/role/read',
     proxy(learnerURL, {
+      timeout: envHelper.sunbird_api_request_timeout,
       limit: reqDataLimitOfContentUpload,
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
       proxyReqPathResolver: function (req) {
         let urlParam = req.originalUrl.replace('/learner/', '')
         let query = require('url').parse(req.url).query
@@ -115,6 +118,10 @@ module.exports = function (app) {
   // Route to check user phone exists - SSO update contact workflow
   app.all('/learner/user/v1/get/phone/*', proxyObj());
 
+  app.get('/learner/isUserExists/user/v1/get/phone/*', proxyObj());
+
+  app.get('/learner/isUserExists/user/v1/get/email/*', proxyObj());
+
   // Route to handle user registration
   app.all('/learner/user/v1/signup',
     healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
@@ -124,13 +131,14 @@ module.exports = function (app) {
   app.all('/learner/*',
     bodyParser.json(),
     isAPIWhitelisted.isAllowed(),
+    healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
     telemetryHelper.generateTelemetryForLearnerService,
     telemetryHelper.generateTelemetryForProxy,
-    healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
     permissionsHelper.checkPermission(),
     proxy(learnerURL, {
+      timeout: envHelper.sunbird_api_request_timeout,
       limit: reqDataLimitOfContentUpload,
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
       proxyReqPathResolver: function (req) {
         let urlParam = req.params['0']
         let query = require('url').parse(req.url).query
@@ -160,8 +168,9 @@ module.exports = function (app) {
 
 function proxyManagedUserRequest() {
   return proxy(learnerURL, {
+    timeout: envHelper.sunbird_api_request_timeout,
     limit: reqDataLimitOfContentUpload,
-    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
     proxyReqPathResolver: function (req) {
       let urlParam = req.originalUrl.replace('/learner/', '');
       let query = require('url').parse(req.url).query;
@@ -191,8 +200,9 @@ function proxyManagedUserRequest() {
 
 function checkForValidUser() {
   return proxy(learnerURL, {
+    timeout: envHelper.sunbird_api_request_timeout,
     limit: reqDataLimitOfContentUpload,
-    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
     proxyReqBodyDecorator: function (bodyContent, srcReq) {
       var data = JSON.parse(bodyContent.toString('utf8'));
       var reqEmail = data.request['email'];
@@ -232,11 +242,13 @@ function checkForValidUser() {
 
 function proxyObj (){
   return proxy(learnerURL, {
+    timeout: envHelper.sunbird_api_request_timeout,
     limit: reqDataLimitOfContentUpload,
-    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(),
+    proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
     proxyReqPathResolver: function (req) {
       let urlParam = req.originalUrl.replace('/learner/', '')
       let query = require('url').parse(req.url).query
+      if (urlParam.indexOf('isUserExists') > -1) urlParam = urlParam.replace('isUserExists/', '');
       if (query) {
         return require('url').parse(learnerURL + urlParam + '?' + query).path
       } else {
