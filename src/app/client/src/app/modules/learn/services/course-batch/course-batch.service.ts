@@ -165,13 +165,4 @@ export class CourseBatchService {
       }));
     }
   }
-  getcertificateDescription(enrolledBatchInfo) {
-    let certificateDescription = '';
-    const certificateTemplate = _.get(enrolledBatchInfo, 'cert_templates');
-    if(certificateTemplate && Object.keys(certificateTemplate).length !== 0) {
-      const templateKey = Object.keys(certificateTemplate);
-      certificateDescription = certificateTemplate[templateKey[0]].description;
-    }
-    return certificateDescription;
-  }
 }
