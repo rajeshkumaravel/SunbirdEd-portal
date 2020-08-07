@@ -56,61 +56,36 @@ module.exports = function (app) {
 
   app.post('/learner/anonymous/otp/v1/generate', googleService.validateRecaptcha);
 
-  // TBD - profile image upload API - is still being used ?
-  app.post('/learner/content/v1/media/upload',
-    proxyUtils.verifyToken(),
-    permissionsHelper.checkPermission(),
-    proxy(learnerURL, {
-      limit: reqDataLimitOfContentUpload,
-      timeout: envHelper.sunbird_api_request_timeout,
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
-      proxyReqPathResolver: function (req) {
-        return require('url').parse(learnerURL + '/content/v1/media/upload').path
-      },
-      userResDecorator: function (proxyRes, proxyResData, req, res) {
-        try {
-          logger.info({ msg: '/learner/content/v1/media/upload called' });
-          let data = JSON.parse(proxyResData.toString('utf8'))
-          if (data.responseCode === 'OK') {
-            data.success = true
-            return JSON.stringify(data)
-          }
-          else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
-        } catch (err) {
-          logger.error({ msg: 'content api user res decorator json parse error:', proxyResData })
-          return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
-        }
-      }
-    })
-  )
-
-  app.all('/learner/data/v1/role/read',
-    proxy(learnerURL, {
-      timeout: envHelper.sunbird_api_request_timeout,
-      limit: reqDataLimitOfContentUpload,
-      proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
-      proxyReqPathResolver: function (req) {
-        let urlParam = req.originalUrl.replace('/learner/', '')
-        let query = require('url').parse(req.url).query
-        if (query) {
-          return require('url').parse(learnerURL + urlParam + '?' + query).path
-        } else {
-          return require('url').parse(learnerURL + urlParam).path
-        }
-      },
-      userResDecorator: function (proxyRes, proxyResData, req, res) {
-        try {
-          logger.info({ msg: '/learner/data/v1/role/read called' });
-          let data = JSON.parse(proxyResData.toString('utf8'))
-          if (req.method === 'GET' && proxyRes.statusCode === 404 && (typeof data.message === 'string' && data.message.toLowerCase() === 'API not found with these values'.toLowerCase())) res.redirect('/')
-          else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
-        } catch (err) {
-          logger.error({ msg: 'learner route : userResDecorator json parse error:', proxyResData })
-          return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
-        }
-      }
-    })
-  )
+  /**
+   * @deprecated - release-3.2.0
+   * To be removed from release-3.3.0
+   */
+  // app.post('/learner/content/v1/media/upload',
+  //   proxyUtils.verifyToken(),
+  //   permissionsHelper.checkPermission(),
+  //   proxy(learnerURL, {
+  //     limit: reqDataLimitOfContentUpload,
+  //     timeout: envHelper.sunbird_api_request_timeout,
+  //     proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(learnerURL),
+  //     proxyReqPathResolver: function (req) {
+  //       return require('url').parse(learnerURL + '/content/v1/media/upload').path
+  //     },
+  //     userResDecorator: function (proxyRes, proxyResData, req, res) {
+  //       try {
+  //         logger.info({ msg: '/learner/content/v1/media/upload called' });
+  //         let data = JSON.parse(proxyResData.toString('utf8'))
+  //         if (data.responseCode === 'OK') {
+  //           data.success = true
+  //           return JSON.stringify(data)
+  //         }
+  //         else return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res, data);
+  //       } catch (err) {
+  //         logger.error({ msg: 'content api user res decorator json parse error:', proxyResData })
+  //         return proxyUtils.handleSessionExpiry(proxyRes, proxyResData, req, res);
+  //       }
+  //     }
+  //   })
+  // )
 
   // Route to check user email exists - SSO update contact workflow
   app.all('/learner/user/v1/get/email/*', proxyObj());
@@ -134,7 +109,6 @@ module.exports = function (app) {
     healthService.checkDependantServiceHealth(['LEARNER', 'CASSANDRA']),
     telemetryHelper.generateTelemetryForLearnerService,
     telemetryHelper.generateTelemetryForProxy,
-    permissionsHelper.checkPermission(),
     proxy(learnerURL, {
       timeout: envHelper.sunbird_api_request_timeout,
       limit: reqDataLimitOfContentUpload,
@@ -145,6 +119,9 @@ module.exports = function (app) {
         if (urlParam.indexOf('anonymous') > -1) urlParam = urlParam.replace('anonymous/', '');
         if (req.url.indexOf('/otp/') > 0) {
           proxyUtils.addReqLog(req);
+        }
+        if (req.originalUrl === '/learner/data/v1/role/read') {
+          urlParam = req.originalUrl.replace('/learner/', '')
         }
         if (query) {
           return require('url').parse(learnerURL + urlParam + '?' + query).path
