@@ -38,8 +38,10 @@ jobs:
       - run:
           name: Executing test cases
           command: 'npm run test-coverage | tee /tmp/logs/test_cases.log'
+      - store_artifacts:
+          path: './coverage/'
       - coveralls/upload:
-          path_to_lcov: '/src/app/client/coverage/lcov.info'
+          path_to_lcov: './coverage/lcov.info'
       # - run:
       #     name: install sonar scanner
       #     command: npm install -g sonarqube-scanner
