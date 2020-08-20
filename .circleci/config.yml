@@ -40,6 +40,7 @@ jobs:
           command: 'npm run test-coverage | tee /tmp/logs/test_cases.log'
       - store_artifacts:
           path: './coverage/'
+          destination: artifact-file
       - coveralls/upload:
           path_to_lcov: './coverage/lcov.info'
       # - run:
