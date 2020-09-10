@@ -38,6 +38,7 @@ module.exports = {
         endpoint: telemtryEventConfig.endpoint,
         batchsize: 1,
         host: envHelper.TELEMETRY_SERVICE_LOCAL_URL,
+        authtoken: 'Bearer ' + envHelper.PORTAL_API_AUTH_TOKEN,
         runningEnv: 'server'
     },
     plugins: [
