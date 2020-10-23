@@ -1,5 +1,5 @@
 import { combineLatest, Subject, of, Observable } from 'rxjs';
-import { PageApiService, OrgDetailsService, FormService, UserService } from '@sunbird/core';
+import { PageApiService, OrgDetailsService, FormService, UserService, SearchService } from '@sunbird/core';
 import { Component, OnInit, OnDestroy, EventEmitter, HostListener, AfterViewInit } from '@angular/core';
 import {
   ResourceService, ToasterService, INoResultMessage, ConfigService, UtilService, ICaraouselData, BrowserCacheTtlService, ServerResponse,
@@ -43,6 +43,7 @@ export class PublicCourseComponent implements OnInit, OnDestroy, AfterViewInit {
   pageTitleSrc;
   svgToDisplay;
   formData: any;
+  _courseSearchResponse: any;
   public facets;
   public facetsList: any;
   public selectedFilters;
@@ -60,7 +61,7 @@ export class PublicCourseComponent implements OnInit, OnDestroy, AfterViewInit {
     public router: Router, private utilService: UtilService, private orgDetailsService: OrgDetailsService,
     private publicPlayerService: PublicPlayerService, private cacheService: CacheService,
     private browserCacheTtlService: BrowserCacheTtlService, private userService: UserService, public formService: FormService,
-    public navigationhelperService: NavigationHelperService, public layoutService: LayoutService) {
+    public navigationhelperService: NavigationHelperService, public layoutService: LayoutService, private searchService: SearchService) {
     this.router.onSameUrlNavigation = 'reload';
     this.filterType = this.configService.appConfig.exploreCourse.filterType;
     this.setTelemetryData();
@@ -193,7 +194,8 @@ export class PublicCourseComponent implements OnInit, OnDestroy, AfterViewInit {
         this.queryParams = { ...queryParams };
         this.carouselMasterData = [];
         this.pageSections = [];
-        this.fetchPageData();
+        // this.fetchPageData();
+        this.fetchCourses();
       });
   }
 
@@ -243,6 +245,7 @@ export class PublicCourseComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private fetchPageData() {
+    this.fetchCourses();
     const currentPageData = this.getPageData(_.get(this.activatedRoute, 'snapshot.queryParams.selectedTab') || 'course');
     let filters = _.pickBy(this.queryParams, (value: Array<string> | string, key) => {
       if (key === 'appliedFilters' || key === 'selectedTab') {
@@ -307,6 +310,96 @@ export class PublicCourseComponent implements OnInit, OnDestroy, AfterViewInit {
       this.pageSections = [];
       this.toasterService.error(this.resourceService.messages.fmsg.m0004);
     });
+  }
+
+  private fetchCourses () {
+    const currentPageData = this.getPageData(_.get(this.activatedRoute, 'snapshot.queryParams.selectedTab') || 'course');
+    let filters = _.pickBy(this.queryParams, (value: Array<string> | string, key) => {
+      if (key === 'appliedFilters' || key === 'selectedTab') {
+        return false;
+      }
+      return value.length;
+    });
+    filters = _.omit(filters, ['utm_source']);
+    filters['contentType'] = currentPageData.search.filters.contentType;
+    // ++++++++++++++++++++++++++++++++++++++uncomment+++++++++++++++++++++++++++++++++++++++++++++++
+    // filters['channel'] = this.hashTagId || '*';
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    const option = {
+      source: 'web',
+      name: 'Course',
+      limit: 100,
+      filters: filters,
+      organisationId: this.hashTagId || '*',
+      facets: _.get(currentPageData, 'search.facets') || ['channel', 'gradeLevel', 'subject', 'medium'],
+      fields: this.configService.urlConFig.params.CourseSearchField
+    };
+    this.searchService.contentSearch(option).pipe(
+      map((response) => {
+        this._courseSearchResponse = response;
+        const filteredContents = _.omit(_.groupBy(_.get(response, 'result.content'), 'subject'), ['undefined']);
+        for (const [key, value] of Object.entries(filteredContents)) {
+          const isMultipleSubjects = key.split(',').length > 1;
+          if (isMultipleSubjects) {
+            const subjects = key.split(',');
+            subjects.forEach((subject) => {
+              if (filteredContents[subject]) {
+                filteredContents[subject] = _.uniqBy(filteredContents[subject].concat(value), 'identifier');
+              } else {
+                filteredContents[subject] = value;
+              }
+            });
+            delete filteredContents[key];
+          }
+        }
+        const sections = [];
+        for (const section in filteredContents) {
+          if (section) {
+            sections.push({
+              name: section,
+              contents: filteredContents[section]
+            });
+          }
+        }
+        return _.map(sections, (section) => {
+          _.forEach(section.contents, contents => {
+            contents.cardImg = contents.appIcon || 'assets/images/book.png';
+          });
+          return section;
+        });
+      }))
+      .subscribe(data => {
+        let facetsList: any = this.utilService.processCourseFacetData(_.get(this._courseSearchResponse, 'result'), option.facets);
+        console.log('facetsList ', facetsList); // TODO: log!
+        const rootOrgIds = this.processOrgData(facetsList.channel);
+        this.orgDetailsService.searchOrgDetails({
+          filters: { isRootOrg: true, rootOrgId: rootOrgIds },
+          fields: ['slug', 'identifier', 'orgName']
+        }).subscribe((orgDetails) => {
+          this.showLoader = false;
+          facetsList.channel = _.get(orgDetails, 'content');
+          facetsList = this.utilService.removeDuplicate(facetsList);
+          this.facets = this.updateFacetsData(facetsList);
+          this.getFilters({filters: this.selectedFilters});
+          this.initFilters = true;
+          this.carouselMasterData = _.sortBy(data, ['name']);
+          if (!this.carouselMasterData.length) {
+            return; // no page section
+          }
+          console.log('carouselMasterData ', this.carouselMasterData); // TODO: log!
+          this.pageSections = this.carouselMasterData.slice(0, 4);
+        }, err => {
+          this.showLoader = false;
+          this.carouselMasterData = [];
+          this.pageSections = [];
+          this.toasterService.error(this.resourceService.messages.fmsg.m0004);
+        });
+      }, err => {
+        this.showLoader = false;
+        this.carouselMasterData = [];
+        this.pageSections = [];
+        this.toasterService.error(this.resourceService.messages.fmsg.m0004);
+      });
   }
 
   public viewAll(event) {

@@ -330,6 +330,27 @@ export class UtilService {
     return facetObj;
   }
 
+  processCourseFacetData(sections, keys) {
+    console.log('____'); // TODO: log!
+    console.log(sections); // TODO: log!
+    console.log(keys); // TODO: log!
+    console.log('____'); // TODO: log!
+    const facetObj = {};
+    if (sections && sections.facets) {
+      _.forEach(sections.facets, (facet) => {
+        if (_.indexOf(keys, facet.name) > -1) {
+          if (facetObj[facet.name]) {
+            facetObj[facet.name].push(...facet.values);
+          } else {
+            facetObj[facet.name] = [];
+            facetObj[facet.name].push(...facet.values);
+          }
+        }
+      });
+    }
+    return facetObj;
+  }
+
   removeDuplicateData(data, key) {
     return _.uniqBy(data, key);
   }

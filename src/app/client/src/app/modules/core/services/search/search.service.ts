@@ -268,6 +268,9 @@ export class SearchService {
       }
     };
 
+    if (requestParam['organisationId']) {
+      option.data.request['organisationId'] = requestParam['organisationId'];
+    }
     if (requestParam['pageNumber'] && requestParam['limit']) {
       option.data.request['offset'] = (requestParam.pageNumber - 1) * requestParam.limit;
     }
