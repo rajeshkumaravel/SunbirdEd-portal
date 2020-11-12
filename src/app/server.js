@@ -41,6 +41,7 @@ const morgan = require('morgan');
 const kidTokenPublicKeyBasePath = envHelper.sunbird_kid_public_key_base_path;
 const { loadTokenPublicKeys } = require('sb_api_interceptor');
 const { getGeneralisedResourcesBundles } = require('./helpers/resourceBundleHelper.js')
+const { saveKongTokenSession } = require('./helpers/kongTokenHelper');
 
 let keycloak = getKeyCloakClient({
   'realm': envHelper.PORTAL_REALM,
@@ -82,6 +83,16 @@ app.all([
     saveUninitialized: false,
     store: memoryStore
   }), keycloak.middleware({ admin: '/callback', logout: '/logout' }));
+
+app.get('/api/generateSession', session({
+  secret: '717b3357-b2b1-4e39-9090-1c712d1b8b64',
+  resave: false,
+  cookie: {
+    maxAge: envHelper.sunbird_session_ttl
+  },
+  saveUninitialized: false,
+  store: memoryStore
+}), keycloak.middleware({ admin: '/callback', logout: '/logout' }), saveKongTokenSession());
 
 app.all('/logoff', endSession, (req, res) => {
   res.cookie('connect.sid', '', { expires: new Date() }); res.redirect('/logout')

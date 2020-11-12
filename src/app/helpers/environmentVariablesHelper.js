@@ -44,7 +44,8 @@ let envVariables = {
   sunbird_kid_public_key_base_path: env.sunbird_kid_public_key_base_path || '/keys/',
   reportsListVersion: env.reportsListVersion || 'v1',
   sunbird_data_product_service: env.sunbird_data_product_service || 'https://staging.ntp.net.in/',
-  
+  KONG_DEVICE_REGISTER_TOKEN: env.sunbird_kong_device_register || 'false',
+  KONG_DEVICE_REGISTER_AUTH_TOKEN: env.sunbird_kong_device_register_token,
 
   // TTL and Intervals
   CONFIG_REFRESH_INTERVAL: env.config_refresh_interval || 10,
