@@ -8,6 +8,7 @@
 
 const _                                 = require('lodash');
 const uuidv1                            = require('uuid/v1');
+const { logger }                        = require('@project-sunbird/logger');
 const { sendRequest }                   = require('./httpRequestHandler');
 const PORTAL_BASE_URL                   = require('./environmentVariablesHelper.js').sunbird_portal_base_url;
 const PORTAL_API_AUTH_TOKEN             = require('./environmentVariablesHelper.js').PORTAL_API_AUTH_TOKEN;
@@ -140,6 +141,11 @@ const getKongTokenFromSession = (req) => {
 };
 
 const getPortalAuthToken = (req) => {
+  logger.info({
+    msg: (KONG_DEVICE_REGISTER_TOKEN === 'true') ? 'KONG_TOKEN' : 'PORTAL_TOKEN',
+    route: _.get(req, 'path'),
+    token: _.get(req, 'session.kongToken')
+  });
   return (KONG_DEVICE_REGISTER_TOKEN === 'true') ? _.get(req, 'session.kongToken') : PORTAL_API_AUTH_TOKEN;
 }
 
