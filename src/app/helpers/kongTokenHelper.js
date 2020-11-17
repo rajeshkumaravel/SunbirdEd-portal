@@ -27,13 +27,17 @@ const generateKongToken = async (req) => {
         },
         body: JSON.stringify({
           request: {
-            key: _.get(req, 'headers.x-device-id')
+            key: _.get(req, 'sessionID') || 'no_token'
           }
         })
       };
       sendRequest(options).then((response) => {
         const responseData = JSON.parse(response);
         if (_.get(responseData, 'params.status') === 'successful') {
+          logger.info({
+            msg: 'KONG_TOKEN :: token generated using key ' + _.get(req, 'sessionID') || 'portal',
+            route: _.get(req, 'path')
+          });
           resolve(responseData);
         } else {
           resolve(false);
@@ -49,13 +53,72 @@ const generateKongToken = async (req) => {
 
 const saveKongTokenSession = () => {
   return (req, res) => {
+    logger.info({
+      msg: 'KONG_TOKEN :: saveKongTokenSession called with session id ' + _.get(req, 'sessionID'),
+      route: _.get(req, 'path')
+    });
     if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
-      generateKongToken(req).then((kongToken) => {
-        if (_.get(kongToken, 'result.token')) {
-          req.session['kongToken'] = _.get(kongToken, 'result.token');
-          req.session['kongDeviceId'] = _.get(kongToken, 'result.key');
-          req.session.save((err) => {
-            if (err) {
+      // req.session.save((err) => {
+      //   if (err) {
+      //     res.writeHead(500, { 'content-type': 'text/json' });
+      //     res.write(JSON.stringify({
+      //       'id': 'api.kong.tokenManager',
+      //       'ts': new Date(),
+      //       'params': {
+      //         'resmsgid': uuidv1(),
+      //         'msgid': uuidv1(),
+      //         'err': 'Internal Server Error',
+      //         'status': 'Internal Server Error',
+      //         'errmsg': 'Internal Server Error'
+      //       },
+      //       'responseCode': 'Internal Server Error',
+      //       'result': {}
+      //     }));
+      //     res.status(500)
+      //     res.end('\n');
+      //   } else {
+          generateKongToken(req).then((kongToken) => {
+            if (_.get(kongToken, 'result.token')) {
+              req.session['kongToken'] = _.get(kongToken, 'result.token');
+              req.session['kongDeviceId'] = _.get(kongToken, 'result.key');
+              req.session.save((err) => {
+                if (err) {
+                  res.writeHead(500, { 'content-type': 'text/json' });
+                  res.write(JSON.stringify({
+                    'id': 'api.kong.tokenManager',
+                    'ts': new Date(),
+                    'params': {
+                      'resmsgid': uuidv1(),
+                      'msgid': uuidv1(),
+                      'err': 'Internal Server Error',
+                      'status': 'Internal Server Error',
+                      'errmsg': 'Internal Server Error'
+                    },
+                    'responseCode': 'Internal Server Error',
+                    'result': {}
+                  }));
+                  res.status(500)
+                  res.end('\n');
+                } else {
+                  res.writeHead(200, { 'content-type': 'text/json' });
+                  res.write(JSON.stringify({
+                    'id': 'api.kong.tokenManager',
+                    'ts': new Date(),
+                    'params': {
+                      'resmsgid': uuidv1(),
+                      'msgid': uuidv1(),
+                      'err': '',
+                      'status': 'OK',
+                      'errmsg': 'OK'
+                    },
+                    'responseCode': 'OK',
+                    'result': {}
+                  }));
+                  res.status(200)
+                  res.end('\n');
+                }
+              });
+            } else {
               res.writeHead(500, { 'content-type': 'text/json' });
               res.write(JSON.stringify({
                 'id': 'api.kong.tokenManager',
@@ -72,28 +135,56 @@ const saveKongTokenSession = () => {
               }));
               res.status(500)
               res.end('\n');
+            }
+          }).catch((err) => {
+            res.writeHead(500, { 'content-type': 'text/json' });
+            res.write(JSON.stringify({
+              'id': 'api.kong.tokenManager',
+              'ts': new Date(),
+              'params': {
+                'resmsgid': uuidv1(),
+                'msgid': uuidv1(),
+                'err': 'Internal Server Error',
+                'status': 'Internal Server Error',
+                'errmsg': 'Internal Server Error'
+              },
+              'responseCode': 'Internal Server Error',
+              'result': _.get(err, 'message')
+            }));
+            res.status(500)
+            res.end('\n');
+          });
+      //   }
+      // });
+
+    } else {
+      res.writeHead(304, { 'content-type': 'text/json' });
+      res.status(304)
+      res.end('\n');
+    }
+  }
+}
+
+const refreshKongTokenSession = () => {
+  return function (req, res, next) {
+    logger.info({
+      msg: 'KONG_TOKEN :: refreshKongTokenSession called',
+      route: _.get(req, 'path')
+    });
+    if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
+      generateKongToken(req).then((kongToken) => {
+        if (_.get(kongToken, 'result.token')) {
+          req.session['kongToken'] = _.get(kongToken, 'result.token');
+          req.session['kongDeviceId'] = _.get(kongToken, 'result.key');
+          req.session.save((err) => {
+            if (err) {
+              next(err);
             } else {
-              res.writeHead(200, { 'content-type': 'text/json' });
-              res.write(JSON.stringify({
-                'id': 'api.kong.tokenManager',
-                'ts': new Date(),
-                'params': {
-                  'resmsgid': uuidv1(),
-                  'msgid': uuidv1(),
-                  'err': '',
-                  'status': 'OK',
-                  'errmsg': 'OK'
-                },
-                'responseCode': 'OK',
-                'result': {}
-              }));
-              res.status(200)
-              res.end('\n');
+              next();
             }
           });
         } else {
-          res.writeHead(500, { 'content-type': 'text/json' });
-          res.write(JSON.stringify({
+          logger.error({
             'id': 'api.kong.tokenManager',
             'ts': new Date(),
             'params': {
@@ -105,36 +196,17 @@ const saveKongTokenSession = () => {
             },
             'responseCode': 'Internal Server Error',
             'result': {}
-          }));
-          res.status(500)
-          res.end('\n');
+          });
+          next(new Error('api.kong.tokenManager:: Internal Server Error'));
         }
       }).catch((err) => {
-        res.writeHead(500, { 'content-type': 'text/json' });
-        res.write(JSON.stringify({
-          'id': 'api.kong.tokenManager',
-          'ts': new Date(),
-          'params': {
-            'resmsgid': uuidv1(),
-            'msgid': uuidv1(),
-            'err': 'Internal Server Error',
-            'status': 'Internal Server Error',
-            'errmsg': 'Internal Server Error'
-          },
-          'responseCode': 'Internal Server Error',
-          'result': _.get(err, 'message')
-        }));
-        res.status(500)
-        res.end('\n');
+        next(err);
       });
     } else {
-      res.writeHead(304, { 'content-type': 'text/json' });
-      res.status(304)
-      res.end('\n');
+      next();
     }
   }
 }
-
 
 const getKongTokenFromSession = (req) => {
  return _.get(req, 'session.kongToken');
@@ -151,5 +223,6 @@ const getPortalAuthToken = (req) => {
 
 module.exports = {
   saveKongTokenSession,
+  refreshKongTokenSession,
   getPortalAuthToken
 };
