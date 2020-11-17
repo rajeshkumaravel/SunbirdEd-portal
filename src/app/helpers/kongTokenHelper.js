@@ -55,7 +55,8 @@ const saveKongTokenSession = () => {
   return (req, res) => {
     logger.info({
       msg: 'KONG_TOKEN :: saveKongTokenSession called with session id ' + _.get(req, 'sessionID'),
-      route: _.get(req, 'path')
+      route: _.get(req, 'path'),
+      sessionId: _.get(req, 'sessionID')
     });
     if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
       // req.session.save((err) => {
@@ -169,7 +170,8 @@ const refreshKongTokenSession = () => {
   return function (req, res, next) {
     logger.info({
       msg: 'KONG_TOKEN :: refreshKongTokenSession called',
-      route: _.get(req, 'path')
+      route: _.get(req, 'path'),
+      sessionId: _.get(req, 'sessionID')
     });
     if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
       generateKongToken(req).then((kongToken) => {

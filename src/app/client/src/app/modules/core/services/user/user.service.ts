@@ -428,7 +428,7 @@ export class UserService {
   }
 
   generateSession() {
-    return this.publicDataService.getWithHeaders({url: 'generateSession'}).subscribe(
+    return this.publicDataService.getWithHeaders({url: 'v1/generateSession'}).subscribe(
       (data: ServerResponse) => {},
       (err: ServerResponse) => {}
     );

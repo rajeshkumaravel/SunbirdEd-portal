@@ -84,7 +84,7 @@ app.all([
     store: memoryStore
   }), keycloak.middleware({ admin: '/callback', logout: '/logout' }));
 
-app.get('/api/generateSession', session({
+app.get('/api/v1/generateSession', session({
   secret: '717b3357-b2b1-4e39-9090-1c712d1b8b64',
   resave: false,
   cookie: {
