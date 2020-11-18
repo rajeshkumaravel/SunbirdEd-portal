@@ -15,7 +15,7 @@ const uuidv1                            = require('uuid/v1');
 const { logger }                        = require('@project-sunbird/logger');
 
 const { sendRequest }                   = require('./httpRequestHandler');
-const PORTAL_BASE_URL                   = require('./environmentVariablesHelper.js').sunbird_portal_base_url;
+const PORTAL_BASE_URL                   = require('./environmentVariablesHelper.js').SUNBIRD_PORTAL_BASE_URL;
 const PORTAL_API_AUTH_TOKEN             = require('./environmentVariablesHelper.js').PORTAL_API_AUTH_TOKEN;
 const KONG_DEVICE_REGISTER_TOKEN        = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_TOKEN;
 const KONG_DEVICE_REGISTER_AUTH_TOKEN   = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_AUTH_TOKEN;
