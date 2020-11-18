@@ -206,7 +206,6 @@ export class AppComponent implements OnInit, OnDestroy {
         mergeMap(data => {
           this.navigationHelperService.initialize();
           this.userService.initialize(this.userService.loggedIn);
-          this.userService.generateSession();
           this.getOrgDetails();
           if (this.userService.loggedIn) {
             this.permissionService.initialize();

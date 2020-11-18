@@ -426,11 +426,4 @@ export class UserService {
     };
     return this.learnerService.getWithHeaders(option);
   }
-
-  generateSession() {
-    return this.publicDataService.getWithHeaders({url: 'v1/generateSession'}).subscribe(
-      (data: ServerResponse) => {},
-      (err: ServerResponse) => {}
-    );
-  }
 }
