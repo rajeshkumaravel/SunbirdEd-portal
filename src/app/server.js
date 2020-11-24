@@ -68,6 +68,17 @@ const app = express()
 app.use(cookieParser())
 app.use(helmet())
 app.use(addLogContext)
+
+app.use(session({
+  secret: '717b3357-b2b1-4e39-9090-1c712d1b8b64',
+  resave: false,
+  cookie: {
+    maxAge: 600000
+  },
+  saveUninitialized: false,
+  store: memoryStore
+}), registerDeviceWithKong());
+
 app.all([
   '/learner/*', '/content/*', '/user/*', '/merge/*', '/action/*', '/courseReports/*', '/course-reports/*', '/admin-reports/*',
   '/certreg/*', '/device/*', '/google/*', '/report/*', '/reports/*', '/v2/user/*', '/v1/sso/*', '/migrate/*', '/plugins/*', '/content-plugins/*',
@@ -83,16 +94,6 @@ app.all([
     saveUninitialized: false,
     store: memoryStore
   }), keycloak.middleware({ admin: '/callback', logout: '/logout' }));
-
-app.use(session({
-  secret: '717b3357-b2b1-4e39-9090-1c712d1b8b64',
-  resave: false,
-  cookie: {
-    maxAge: envHelper.sunbird_session_ttl
-  },
-  saveUninitialized: false,
-  store: memoryStore
-}), registerDeviceWithKong());
 
 app.all('/logoff', endSession, (req, res) => {
   res.cookie('connect.sid', '', { expires: new Date() }); res.redirect('/logout')

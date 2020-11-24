@@ -23,6 +23,7 @@ const { logger }                        = require('@project-sunbird/logger');
 
 const { sendRequest }                   = require('./httpRequestHandler');
 const PORTAL_BASE_URL                   = require('./environmentVariablesHelper.js').SUNBIRD_PORTAL_BASE_URL;
+const SUNBIRD_DEFAULT_TTL               = require('./environmentVariablesHelper.js').sunbird_session_ttl;
 const PORTAL_API_AUTH_TOKEN             = require('./environmentVariablesHelper.js').PORTAL_API_AUTH_TOKEN;
 const KONG_DEVICE_REGISTER_TOKEN        = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_TOKEN;
 const KONG_DEVICE_REGISTER_AUTH_TOKEN   = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_AUTH_TOKEN;
@@ -64,21 +65,18 @@ const generateKongToken = async (req) => {
 };
 
 const registerDeviceWithKong = () => {
-  return function (req, res, next) {
-    _log(req, 'KONG_TOKEN :: requesting device register with kong');
+  return async function (req, res, next) {
     // Check if URL is blacklisted; forward request in case blacklisted
     if (!unless(req)) {
+      _log(req, 'KONG_TOKEN :: requesting device register with kong');
       if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
         generateKongToken(req).then((kongToken) => {
           if (_.get(kongToken, 'result.token')) {
             req.session[KONG_SESSION_TOKEN] = _.get(kongToken, 'result.token');
-            req.session.save((err) => {
-              if (err) {
-                next(err);
-              } else {
-                next();
-              }
-            });
+            req.session['auth_redirect_uri'] = req.protocol + `://${req.get('host')}/resources?auth_callback=1`;
+            req.session.cookie.maxAge = 600000;
+            req.session.cookie.expires = new Date(Date.now() + 600000);
+            next();
           } else {
             logger.error({
               'id': 'api.kong.tokenManager', 'ts': new Date(),
@@ -123,6 +121,14 @@ const getPortalAuthToken = (req) => {
   return (KONG_DEVICE_REGISTER_TOKEN === 'true') ? _.get(req, 'session.' + KONG_SESSION_TOKEN) : PORTAL_API_AUTH_TOKEN;
 };
 
+const updateSessionTTL = () => {
+  return async (req, res, next) => {
+    req.session.cookie.maxAge = SUNBIRD_DEFAULT_TTL;
+    req.session.cookie.expires = new Date(Date.now() + SUNBIRD_DEFAULT_TTL)
+    next();
+  }
+};
+
 const _log = (req, message) => {
   logger.info({
     msg: message,
@@ -135,5 +141,6 @@ const _log = (req, message) => {
 
 module.exports = {
   registerDeviceWithKong,
-  getPortalAuthToken
+  getPortalAuthToken,
+  updateSessionTTL
 };
