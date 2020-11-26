@@ -73,7 +73,7 @@ app.use(session({
   secret: '717b3357-b2b1-4e39-9090-1c712d1b8b64',
   resave: false,
   cookie: {
-    maxAge: env.sunbird_anonymous_session_ttl
+    maxAge: envHelper.sunbird_anonymous_session_ttl
   },
   saveUninitialized: false,
   store: memoryStore
