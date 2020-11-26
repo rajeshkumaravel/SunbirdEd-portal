@@ -3,18 +3,6 @@
  * @since release-3.5.0
  * @version 1.0
  */
-// ******************************************************************************************************
-// ******************************************************************************************************
-// check where all tokens used - generate report
-// What todo when kong device register fails to respond / service down
-//  - Shld we throw exception (or) just us fallback for using PORTAL_AUTH_TOKEN
-//  - Change in `getPortalAuthToken` method remove LHS (or) use if else also log which token used
-
-// +++++++++++++++++++++++ TTL for non-logged in user +++++++++++++++++++++++
-// +++++++++++++++++++++++ Update TTL in server js and kongtokenhelper +++++++++++++++++++++++
-
-// ******************************************************************************************************
-// ******************************************************************************************************
 'use strict';
 
 const _                                 = require('lodash');
@@ -24,6 +12,7 @@ const { logger }                        = require('@project-sunbird/logger');
 const { sendRequest }                   = require('./httpRequestHandler');
 const PORTAL_BASE_URL                   = require('./environmentVariablesHelper.js').SUNBIRD_PORTAL_BASE_URL;
 const SUNBIRD_DEFAULT_TTL               = require('./environmentVariablesHelper.js').sunbird_session_ttl;
+const SUNBIRD_ANONYMOUS_TTL             = require('./environmentVariablesHelper.js').sunbird_anonymous_session_ttl;
 const PORTAL_API_AUTH_TOKEN             = require('./environmentVariablesHelper.js').PORTAL_API_AUTH_TOKEN;
 const KONG_DEVICE_REGISTER_TOKEN        = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_TOKEN;
 const KONG_DEVICE_REGISTER_AUTH_TOKEN   = require('./environmentVariablesHelper.js').KONG_DEVICE_REGISTER_AUTH_TOKEN;
@@ -68,14 +57,14 @@ const registerDeviceWithKong = () => {
   return async function (req, res, next) {
     // Check if URL is blacklisted; forward request in case blacklisted
     if (!unless(req)) {
-      _log(req, 'KONG_TOKEN :: requesting device register with kong');
-      if (KONG_DEVICE_REGISTER_TOKEN !== 'false' && !getKongTokenFromSession(req)) {
+      if (KONG_DEVICE_REGISTER_TOKEN === 'true' && !getKongTokenFromSession(req)) {
+        _log(req, 'KONG_TOKEN :: requesting device register with kong');
         generateKongToken(req).then((kongToken) => {
           if (_.get(kongToken, 'result.token')) {
             req.session[KONG_SESSION_TOKEN] = _.get(kongToken, 'result.token');
             req.session['auth_redirect_uri'] = req.protocol + `://${req.get('host')}/resources?auth_callback=1`;
-            req.session.cookie.maxAge = 600000;
-            req.session.cookie.expires = new Date(Date.now() + 600000);
+            req.session.cookie.maxAge = SUNBIRD_ANONYMOUS_TTL;
+            req.session.cookie.expires = new Date(Date.now() + SUNBIRD_ANONYMOUS_TTL);
             next();
           } else {
             logger.error({
@@ -134,8 +123,8 @@ const _log = (req, message) => {
     msg: message,
     route: _.get(req, 'path') || 'no_route',
     originalUrl: _.get(req, 'originalUrl') || 'no_originalUrl',
-    baseUrl: _.get(req, 'baseUrl') || 'baseUrl',
-    token: _.get(req, 'session.' + KONG_SESSION_TOKEN)
+    baseUrl: _.get(req, 'baseUrl') || 'no_baseUrl',
+    sessionId: _.get(req, 'sessionID')
   });
 };
 
