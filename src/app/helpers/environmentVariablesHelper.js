@@ -115,7 +115,8 @@ let envVariables = {
   sunbird_portal_cdn_blob_url: env.sunbird_portal_cdn_blob_url || '',
   sunbird_portal_video_max_size: env.sunbird_portal_video_max_size || '50',
   sunbird_azure_resourceBundle_container_name: env.sunbird_azure_resourceBundle_container_name || 'label',
-
+  PORTAL_REDIS_URL: env.sunbird_redis_urls,
+  PORTAL_REDIS_PORT: env.sunbird_redis_port,
 
   // Default Language Configuration
   sunbird_default_language: env.sunbird_portal_default_language || 'en',
