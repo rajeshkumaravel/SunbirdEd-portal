@@ -9,7 +9,7 @@
 const redis       = require('redis');
 const { logger } = require('@project-sunbird/logger');
 const envHelper   = require('./environmentVariablesHelper.js');
-if (!envHelper.PORTAL_REDIS_URL || !envHelper.PORTAL_REDIS_PORT) throw new Error('Redis Host and PORT configuration required.');
+// if (!envHelper.PORTAL_REDIS_URL || !envHelper.PORTAL_REDIS_PORT) throw new Error('Redis Host and PORT configuration required.');
 // const redisClient = redis.createClient({
 //   host: envHelper.PORTAL_REDIS_URL,
 //   port: envHelper.PORTAL_REDIS_PORT,
@@ -17,10 +17,10 @@ if (!envHelper.PORTAL_REDIS_URL || !envHelper.PORTAL_REDIS_PORT) throw new Error
 //     return 5000; //in ms
 //   }
 // });
-const redisClient = redis.createClient('rediss://' + envHelper.PORTAL_REDIS_CONNECTION_STRING);
+const redisClient = redis.createClient(envHelper.PORTAL_REDIS_CONNECTION_STRING);
 console.log('___________________________________________________'); // TODO: log!
 console.log('Connecting to redis with below connection string'); // TODO: log!
-console.log('rediss://' + envHelper.PORTAL_REDIS_CONNECTION_STRING); // TODO: log!
+console.log(envHelper.PORTAL_REDIS_CONNECTION_STRING); // TODO: log!
 console.log('___________________________________________________'); // TODO: log!
 
 /**
