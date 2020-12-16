@@ -104,7 +104,7 @@ let envVariables = {
 
   // BLOB and Storage Configuration
   CACHE_STORE: env.sunbird_cache_store || 'memory',
-  PORTAL_SESSION_STORE_TYPE: env.sunbird_session_store_type || 'in-memory',
+  PORTAL_SESSION_STORE_TYPE: 'redis',
   CLOUD_STORAGE_URLS: env.sunbird_cloud_storage_urls,
   PORTAL_CASSANDRA_CONSISTENCY_LEVEL: env.sunbird_cassandra_consistency_level || 'one',
   PORTAL_CASSANDRA_REPLICATION_STRATEGY: env.sunbird_cassandra_replication_strategy || '{"class":"SimpleStrategy","replication_factor":1}',
