@@ -43,7 +43,8 @@ if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
   ]);
 } else {
   console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
-  cluster = new Redis(envHelper.PORTAL_REDIS_CONNECTION_STRING);
+  console.log(envHelper.PORTAL_REDIS_CONNECTION_STRING); // TODO: log!
+  cluster = new Redis(envHelper.PORTAL_REDIS_CONNECTION_STRING.toString());
 }
 
 console.log('Connecting to redis with below connection string'); // TODO: log!
