@@ -9,52 +9,59 @@
 const redis       = require('redis');
 const { logger } = require('@project-sunbird/logger');
 const envHelper   = require('./environmentVariablesHelper.js');
+const Redis       = require("ioredis");
 // if (!envHelper.PORTAL_REDIS_URL || !envHelper.PORTAL_REDIS_PORT) throw new Error('Redis Host and PORT configuration required.');
-const redisClient = redis.createClient({
-  host: envHelper.PORTAL_REDIS_URL,
-  port: envHelper.PORTAL_REDIS_PORT,
-  retry_strategy: (options) => {
-    return 5000; //in ms
-  }
-});
+// const redisClient = redis.createClient({
+//   host: envHelper.PORTAL_REDIS_URL,
+//   port: envHelper.PORTAL_REDIS_PORT,
+//   retry_strategy: (options) => {
+//     return 5000; //in ms
+//   }
+// });
 // const redisClient = redis.createClient(envHelper.PORTAL_REDIS_CONNECTION_STRING);
+const cluster = new Redis.Cluster([
+  {
+    port: envHelper.PORTAL_REDIS_PORT,
+    host: envHelper.PORTAL_REDIS_URL,
+  }
+]);
 console.log('___________________________________________________'); // TODO: log!
 console.log('Connecting to redis with below connection string'); // TODO: log!
 console.log(envHelper.PORTAL_REDIS_URL + ':' + envHelper.PORTAL_REDIS_PORT); // TODO: log!
 console.log('___________________________________________________'); // TODO: log!
 
-/**
- * Redis Event listener for `connect` event
- */
-redisClient.on('connect', function () {
-  logger.info({msg: `✅ Redis Server connecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
-});
+// /**
+//  * Redis Event listener for `connect` event
+//  */
+// redisClient.on('connect', function () {
+//   logger.info({msg: `✅ Redis Server connecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+// });
 
-/**
- * Redis Event listener for `ready` event
- */
-redisClient.on('ready', function () {
-  logger.info({msg: `✅ Redis Server connected to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
-});
+// /**
+//  * Redis Event listener for `ready` event
+//  */
+// redisClient.on('ready', function () {
+//   logger.info({msg: `✅ Redis Server connected to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+// });
 
-/**
- * Redis Event listener for `reconnecting` event
- */
-redisClient.on('reconnecting', function () {
-  logger.info({msg: `❌ Redis Server reconnecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
-  // throw new Error('Redis Client - Connection failure');
-});
+// /**
+//  * Redis Event listener for `reconnecting` event
+//  */
+// redisClient.on('reconnecting', function () {
+//   logger.info({msg: `❌ Redis Server reconnecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+//   // throw new Error('Redis Client - Connection failure');
+// });
 
-/**
- * Redis Event listener for `error` event
- */
-redisClient.on('error', function (error) {
-  logger.info({
-    msg: `❌ Redis Server error while connecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`,
-    error: error
-  });
-  // throw new Error(error);
-});
+// /**
+//  * Redis Event listener for `error` event
+//  */
+// redisClient.on('error', function (error) {
+//   logger.info({
+//     msg: `❌ Redis Server error while connecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`,
+//     error: error
+//   });
+//   // throw new Error(error);
+// });
 
 /**
  * @param  {any} param - An argument of any type
@@ -75,7 +82,8 @@ function valueRequired (param) {
 /* istanbul ignore next */
 function getRedisStoreInstance (session = valueRequired('session')) {
   const RedisStore = require('connect-redis')(session);
-  return new RedisStore({ client: redisClient });
+  // return new RedisStore({ client: redisClient });
+  return new RedisStore({ client: cluster });
 };
 
 module.exports = {
