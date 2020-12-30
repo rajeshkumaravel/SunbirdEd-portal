@@ -19,13 +19,30 @@ const Redis       = require("ioredis");
 //   }
 // });
 // const redisClient = redis.createClient(envHelper.PORTAL_REDIS_CONNECTION_STRING);
-const cluster = new Redis.Cluster([
-  {
-    port: envHelper.PORTAL_REDIS_PORT,
-    host: envHelper.PORTAL_REDIS_URL,
-  }
-]);
+
+var cluster;
 console.log('___________________________________________________'); // TODO: log!
+if (env.PORTAL_REDIS_TYPE == 'sentinel') {
+  console.log('Connecting to redis for type ' , env.PORTAL_REDIS_TYPE); // TODO: log!
+  cluster = new Redis({
+    sentinels: [
+      {
+        port: envHelper.PORTAL_REDIS_PORT,
+        host: envHelper.PORTAL_REDIS_URL,
+      }
+    ],
+    name: "mymaster",
+  });
+} else {
+  console.log('Connecting to redis for type ' , env.PORTAL_REDIS_TYPE); // TODO: log!
+  cluster = new Redis.Cluster([
+    {
+      port: envHelper.PORTAL_REDIS_PORT,
+      host: envHelper.PORTAL_REDIS_URL,
+    }
+  ]);
+}
+
 console.log('Connecting to redis with below connection string'); // TODO: log!
 console.log(envHelper.PORTAL_REDIS_URL + ':' + envHelper.PORTAL_REDIS_PORT); // TODO: log!
 console.log('___________________________________________________'); // TODO: log!
