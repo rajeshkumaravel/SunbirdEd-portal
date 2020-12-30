@@ -10,14 +10,14 @@ const redis       = require('redis');
 const { logger } = require('@project-sunbird/logger');
 const envHelper   = require('./environmentVariablesHelper.js');
 // if (!envHelper.PORTAL_REDIS_URL || !envHelper.PORTAL_REDIS_PORT) throw new Error('Redis Host and PORT configuration required.');
-// const redisClient = redis.createClient({
-//   host: envHelper.PORTAL_REDIS_URL,
-//   port: envHelper.PORTAL_REDIS_PORT,
-//   retry_strategy: (options) => {
-//     return 5000; //in ms
-//   }
-// });
-const redisClient = redis.createClient(envHelper.PORTAL_REDIS_CONNECTION_STRING);
+const redisClient = redis.createClient({
+  host: 'redis-cluster.dev.svc.cluster.local',
+  port: 6379,
+  retry_strategy: (options) => {
+    return 5000; //in ms
+  }
+});
+// const redisClient = redis.createClient(envHelper.PORTAL_REDIS_CONNECTION_STRING);
 console.log('___________________________________________________'); // TODO: log!
 console.log('Connecting to redis with below connection string'); // TODO: log!
 console.log(envHelper.PORTAL_REDIS_CONNECTION_STRING); // TODO: log!
@@ -27,21 +27,21 @@ console.log('___________________________________________________'); // TODO: log
  * Redis Event listener for `connect` event
  */
 redisClient.on('connect', function () {
-  logger.info({msg: `✅ Redis Server connecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+  logger.info({msg: `✅ Redis Server connecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
 });
 
 /**
  * Redis Event listener for `ready` event
  */
 redisClient.on('ready', function () {
-  logger.info({msg: `✅ Redis Server connected to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+  logger.info({msg: `✅ Redis Server connected to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
 });
 
 /**
  * Redis Event listener for `reconnecting` event
  */
 redisClient.on('reconnecting', function () {
-  logger.info({msg: `❌ Redis Server reconnecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`});
+  logger.info({msg: `❌ Redis Server reconnecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`});
   // throw new Error('Redis Client - Connection failure');
 });
 
@@ -50,7 +50,7 @@ redisClient.on('reconnecting', function () {
  */
 redisClient.on('error', function (error) {
   logger.info({
-    msg: `❌ Redis Server error while connecting to [${envHelper.PORTAL_REDIS_URL}:${envHelper.PORTAL_REDIS_PORT}]`,
+    msg: `❌ Redis Server error while connecting to [${envHelper.PORTAL_REDIS_CONNECTION_STRING}]`,
     error: error
   });
   // throw new Error(error);
