@@ -23,7 +23,7 @@ const Redis       = require("ioredis");
 var cluster;
 console.log('___________________________________________________'); // TODO: log!
 if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
-  console.log('Connecting to redis for type ' , env.PORTAL_REDIS_TYPE); // TODO: log!
+  console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
   cluster = new Redis({
     sentinels: [
       {
@@ -34,7 +34,7 @@ if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
     name: "mymaster",
   });
 } else {
-  console.log('Connecting to redis for type ' , env.PORTAL_REDIS_TYPE); // TODO: log!
+  console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
   cluster = new Redis.Cluster([
     {
       port: envHelper.PORTAL_REDIS_PORT,
