@@ -22,7 +22,7 @@ const Redis       = require("ioredis");
 
 var cluster;
 console.log('___________________________________________________'); // TODO: log!
-if (env.PORTAL_REDIS_TYPE == 'sentinel') {
+if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
   console.log('Connecting to redis for type ' , env.PORTAL_REDIS_TYPE); // TODO: log!
   cluster = new Redis({
     sentinels: [
