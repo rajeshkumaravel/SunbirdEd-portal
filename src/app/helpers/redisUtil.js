@@ -36,7 +36,8 @@ if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
       }
     ],
     name: "mymaster",
-    password: envHelper.PORTAL_REDIS_PASSWORD
+    password: envHelper.PORTAL_REDIS_PASSWORD,
+    sentinelPassword: envHelper.PORTAL_REDIS_PASSWORD
   });
 } else if (envHelper.PORTAL_REDIS_TYPE == 'cluster') {
   console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
