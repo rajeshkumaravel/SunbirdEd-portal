@@ -118,6 +118,7 @@ let envVariables = {
   PORTAL_REDIS_URL: env.sunbird_redis_urls,
   PORTAL_REDIS_PORT: env.sunbird_redis_port,
   PORTAL_REDIS_TYPE: env.sunbird_redis_type,
+  PORTAL_REDIS_PASSWORD: env.sunbird_redis_password,
   PORTAL_REDIS_CONNECTION_STRING: env.portal_redis_connection_string,
 
   // Default Language Configuration
