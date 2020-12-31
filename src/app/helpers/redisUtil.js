@@ -22,6 +22,10 @@ const Redis       = require("ioredis");
 
 var cluster;
 console.log('___________________________________________________'); // TODO: log!
+console.log('envHelper.PORTAL_REDIS_PASSWORD ', envHelper.PORTAL_REDIS_PASSWORD); // TODO: log!
+// ++++++++++++++++++++++++++++
+// default - sentinel
+// ++++++++++++++++++++++++++++
 if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
   console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
   cluster = new Redis({
@@ -32,7 +36,7 @@ if (envHelper.PORTAL_REDIS_TYPE == 'sentinel') {
       }
     ],
     name: "mymaster",
-    sentinelPassword: envHelper.PORTAL_REDIS_PASSWORD
+    password: envHelper.PORTAL_REDIS_PASSWORD
   });
 } else if (envHelper.PORTAL_REDIS_TYPE == 'cluster') {
   console.log('Connecting to redis for type ' , envHelper.PORTAL_REDIS_TYPE); // TODO: log!
