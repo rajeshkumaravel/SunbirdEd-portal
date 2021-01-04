@@ -116,7 +116,11 @@ let envVariables = {
   sunbird_portal_cdn_blob_url: env.sunbird_portal_cdn_blob_url || '',
   sunbird_portal_video_max_size: env.sunbird_portal_video_max_size || '50',
   sunbird_azure_resourceBundle_container_name: env.sunbird_azure_resourceBundle_container_name || 'label',
-
+  PORTAL_REDIS_URL: env.sunbird_redis_urls,
+  PORTAL_REDIS_PORT: env.sunbird_redis_port,
+  PORTAL_REDIS_TYPE: env.sunbird_redis_type, // Allowed type [standalone/cluster]; default `sentinel`
+  PORTAL_REDIS_PASSWORD: env.sunbird_redis_password,
+  PORTAL_REDIS_CONNECTION_STRING: env.portal_redis_connection_string,
 
   // Default Language Configuration
   sunbird_default_language: env.sunbird_portal_default_language || 'en',
