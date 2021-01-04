@@ -20,6 +20,10 @@ const KONG_DEVICE_REGISTER_AUTH_TOKEN   = require('./environmentVariablesHelper.
 const KONG_SESSION_TOKEN                = 'kongDeviceToken';
 const BLACKLISTED_URL                   = ['/service/health', '/health'];
 
+/**
+ * @param  { Object } req - API Request object
+ * @description Get Kong token from core service using session id as primary key
+ */
 const generateKongToken = async (req) => {
   return new Promise((resolve, reject) => {
     try {
@@ -53,6 +57,13 @@ const generateKongToken = async (req) => {
   });
 };
 
+/**
+ * @description Entry method for requesting Kong token
+ * 1. Request API should not be blacklisted
+ * 2. `Kong` service flag should be enabled
+ * 3. Req session id should not have existing kong token
+ * 4. If session consists kong token; same will be returned
+ */
 const registerDeviceWithKong = () => {
   return async function (req, res, next) {
     // Check if URL is blacklisted; forward request in case blacklisted
@@ -96,20 +107,40 @@ const registerDeviceWithKong = () => {
   }
 };
 
+/**
+ * @param  { Object } req - API Request object
+ * @description Function to return kong token for req session id
+ * @returns { String } Kong token from session object
+ */
 const getKongTokenFromSession = (req) => {
   return _.get(req, 'session.' + KONG_SESSION_TOKEN);
 };
 
+/**
+ * @param  { Object } req - API Request object
+ * @description Function to check request URL / API is not blacklisted
+ * @returns { Boolean } Flag indicating API status
+ */
 const unless = (req) => {
   const existsIndex = _.indexOf(BLACKLISTED_URL, _.get(req, 'originalUrl'));
   return existsIndex > -1 ? true : false;
 };
 
+/**
+ * @param  { Object } req - API Request object
+ * @description Function to return portal auth token based on service flag
+ * 1. If `Kong` service flag should be enabled; kong token from session is returned
+ * 2. Else default portal auth token is returned
+ * @returns { String } Portal auth token
+ */
 const getPortalAuthToken = (req) => {
   _log(req, (KONG_DEVICE_REGISTER_TOKEN === 'true') ? 'USE_KONG_TOKEN' : 'USE_PORTAL_TOKEN');
   return (KONG_DEVICE_REGISTER_TOKEN === 'true') ? _.get(req, 'session.' + KONG_SESSION_TOKEN) : PORTAL_API_AUTH_TOKEN;
 };
 
+/**
+ * @description Function to update session TTL
+ */
 const updateSessionTTL = () => {
   return async (req, res, next) => {
     req.session.cookie.maxAge = SUNBIRD_DEFAULT_TTL;
@@ -118,6 +149,10 @@ const updateSessionTTL = () => {
   }
 };
 
+/**
+ * @param  { Object } req     - API Request object
+ * @param  { String } message - Log message
+ */
 const _log = (req, message) => {
   logger.info({
     msg: message,
