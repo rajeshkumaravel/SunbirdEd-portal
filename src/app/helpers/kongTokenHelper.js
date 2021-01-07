@@ -76,7 +76,13 @@ const registerDeviceWithKong = () => {
             req.session['auth_redirect_uri'] = req.protocol + `://${req.get('host')}/resources?auth_callback=1`;
             req.session.cookie.maxAge = SUNBIRD_ANONYMOUS_TTL;
             req.session.cookie.expires = new Date(Date.now() + SUNBIRD_ANONYMOUS_TTL);
-            next();
+            req.session.save(function (error) {
+              if (error) {
+                next(error, null)
+              } else {
+                next();
+              }
+            });
           } else {
             logger.error({
               'id': 'api.kong.tokenManager', 'ts': new Date(),
@@ -98,13 +104,36 @@ const registerDeviceWithKong = () => {
       } else {
         let _msg = getKongTokenFromSession(req) ? 'using existing token' : 'no token from session'
         _log(req, 'KONG_TOKEN :: request denied - either flag is set to false or ' + _msg);
-        next();
+        _refreshLoginTTL(req, res, next);
       }
     } else {
       _log(req, 'KONG_TOKEN :: request denied - URL blacklisted');
       next();
     }
   }
+};
+
+/**
+ * @param  { Object } req - API Request object
+ * @param  { Object } res - API Response object
+ * @param  { Callback } next - Request callback
+ * @description Function to refresh TTL
+ */
+const _refreshLoginTTL = (req, res, next) => {
+  if (req.session.userId) {
+    req.session.cookie.maxAge = SUNBIRD_DEFAULT_TTL;
+    req.session.cookie.expires = new Date(Date.now() + SUNBIRD_DEFAULT_TTL);
+  } else {
+    req.session.cookie.maxAge = SUNBIRD_ANONYMOUS_TTL;
+    req.session.cookie.expires = new Date(Date.now() + SUNBIRD_ANONYMOUS_TTL);
+  }
+  req.session.save(function (error) {
+    if (error) {
+      next(error, null)
+    } else {
+      next();
+    }
+  });
 };
 
 /**
@@ -144,8 +173,14 @@ const getPortalAuthToken = (req) => {
 const updateSessionTTL = () => {
   return async (req, res, next) => {
     req.session.cookie.maxAge = SUNBIRD_DEFAULT_TTL;
-    req.session.cookie.expires = new Date(Date.now() + SUNBIRD_DEFAULT_TTL)
-    next();
+    req.session.cookie.expires = new Date(Date.now() + SUNBIRD_DEFAULT_TTL);
+    req.session.save(function (error) {
+      if (error) {
+        next(error, null)
+      } else {
+        next();
+      }
+    });
   }
 };
 

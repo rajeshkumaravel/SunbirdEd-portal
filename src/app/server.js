@@ -267,7 +267,8 @@ async function runApp() {
     portal.server = app.listen(envHelper.PORTAL_PORT, () => {
       envHelper.defaultChannelId = _.get(channelData, 'result.response.content[0].hashTagId'); // needs to be added in envVariable file
       logger.info({ msg: `app running on port ${envHelper.PORTAL_PORT}` })
-      logger.info({ msg: `Kong device register is set to ${envHelper.KONG_DEVICE_REGISTER_TOKEN}`});
+      logger.info({ msg: `✅ Kong device register is set to   - ${envHelper.KONG_DEVICE_REGISTER_TOKEN}`});
+      logger.info({ msg: `✅ Portal session storage is set to - ${envHelper.PORTAL_SESSION_STORE_TYPE}`});
     })
     handleShutDowns();
     portal.server.keepAliveTimeout = 60000 * 5;
