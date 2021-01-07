@@ -332,7 +332,8 @@ export class AppComponent implements OnInit, OnDestroy {
         if (_.get(res[0], 'tenantData')) {
           const orgDetailsFromSlug = this.cacheService.get('orgDetailsFromSlug');
           if (_.get(orgDetailsFromSlug, 'slug') !== this.tenantService.slugForIgot) {
-            this.showUserTypePopup = !localStorage.getItem('userType');
+            const userType = localStorage.getItem('userType');
+            this.showUserTypePopup = _.get(this.userService, 'loggedIn') ? (!_.get(this.userService, 'userProfile.userType') || !userType) : !userType;
           }
         }
       });
@@ -472,6 +473,7 @@ export class AppComponent implements OnInit, OnDestroy {
           // Check for non custodian user and show global consent pop up
           this.consentConfig = { tncLink: '', tncText: this.resourceService.frmelmnts.lbl.nonCustodianTC };
           this.showGlobalConsentPopUpSection = true;
+          this.checkFrameworkSelected();
         } else {
           this.checkFrameworkSelected();
         }
