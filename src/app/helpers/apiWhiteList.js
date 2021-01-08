@@ -28,6 +28,7 @@ const ROLE = {
  */
 const isAllowed = () => {
   return function (req, res, next) {
+    console.log('req.path _____________ ', req.path); // TODO: log!
     let REQ_URL = req.path;
     // Pattern match for URL
     _.forEach(API_LIST.URL_PATTERN, (url) => {
@@ -52,6 +53,9 @@ const isAllowed = () => {
       executeChecks(req, res, next, checksToExecute);
     } else {
       // If API is not whitelisted
+      console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'); // TODO: log!
+      console.log(req.path); // TODO: log!
+      console.log('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'); // TODO: log!
       respond403(req, res);
     }
   }
@@ -73,17 +77,23 @@ const urlChecks = {
    * @since - release-3.1.0
    */
   ROLE_CHECK: (resolve, reject, req, rolesForURL, REQ_URL) => {
-    // logger.info({
-    //   msg: 'whitelist middleware for URL [ ' + REQ_URL + ' ]',
-    //   originalUrl: req.path,
-    //   reqRoles: req.session['roles'] ? req.session['roles'] : 'no roles in session',
-    //   rulesForURL: rolesForURL
-    // });
+    console.log({
+      msg: 'whitelist middleware for URL [ ' + REQ_URL + ' ]',
+      originalUrl: req.path,
+      reqRoles: req.session['roles'] ? req.session['roles'] : 'no roles in session',
+      rulesForURL: rolesForURL
+    });
+    console.log('___________-', req.session['roles'])
     if (_.includes(rolesForURL, 'ALL') && req.session['roles'].length > 0) {
+      console.log(_.includes(rolesForURL, 'ALL') && req.session['roles'].length > 0); // TODO: log!
+      console.log('called if 1'); // TODO: log!
       resolve();
     } else if (_.intersection(rolesForURL, req.session['roles']).length > 0) {
+      console.log(_.intersection(rolesForURL, req.session['roles']).length > 0); // TODO: log!
+      console.log('called if 2'); // TODO: log!
       resolve();
     } else {
+      console.log('called if 3'); // TODO: log!
       return reject('User doesn\'t have appropriate roles');
     }
   },
@@ -97,6 +107,7 @@ const urlChecks = {
    * @since - release-3.1.0
    */
   OWNER_CHECK: async (resolve, reject, req, checksParams, REQ_URL) => {
+    console.log('+++++++++++ called owner check'); // TODO: log!
     if (_.get(checksParams, 'checks')) {
       let ownerChecks = [];
       checksParams.checks.forEach((ownerCheckObj) => {
@@ -133,6 +144,7 @@ const urlChecks = {
    * @since - release-3.1.0
    */
   __session__userId: (resolve, reject, req, ownerCheckObj) => {
+    console.log('+++++++++++ called __session__userId'); // TODO: log!
     try {
       const _sessionUserId = _.get(req, 'session.userId');
       const _reqUserId = _.get(req, 'body.request.userId');
@@ -157,6 +169,7 @@ const urlChecks = {
    * @since - release-3.3.0
    */
   __adminCheck__userId: (resolve, reject, req, ownerCheckObj) => {
+    console.log('+++++++++++ called __adminCheck__userId'); // TODO: log!
     try {
       const _sessionUserId = _.get(req, 'session.userId');
       const _reqUserId = _.get(req, 'body.request.userId');
@@ -192,11 +205,14 @@ const executeChecks = async (req, res, next, checksToExecute) => {
   try {
     await Promise.allSettled(checksToExecute)
       .then((pSuccess) => {
+        console.log('pSuccess ', pSuccess); // TODO: log!
         if (pSuccess) {
           const _isRejected = _.find(pSuccess, {'status': 'rejected'});
           if (_isRejected) {
+            console.log('_isRejected ', _isRejected); // TODO: log!
             throw new Error(_isRejected.reason);
           } else {
+            console.log('_request forwarded'); // TODO: log!
             next();
           }
         } else {
@@ -221,6 +237,10 @@ const executeChecks = async (req, res, next, checksToExecute) => {
  */
 const respond403 = (req, res) => {
   let REQ_URL = req.originalUrl;
+  console.log('______________________________________________________________________________________'); // TODO: log!
+  console.log(req.path); // TODO: log!
+  console.log(req.originalUrl); // TODO: log!
+  console.log('______________________________________________________________________________________'); // TODO: log!
   const err = ({ msg: 'API WHITELIST :: Forbidden access for API [ ' + REQ_URL + ' ]', url: REQ_URL });
   utils.logError(req, err, err.msg);
   res.status(403);
@@ -233,7 +253,7 @@ const respond403 = (req, res) => {
       msgid: null,
       status: 'failed',
       err: 'FORBIDDEN_ERROR',
-      errmsg: 'Forbidden: API WHITELIST Access is denied'
+      errmsg: '___________________Forbidden: API WHITELIST Access is denied'
     },
     responseCode: 'FORBIDDEN',
     result: {}

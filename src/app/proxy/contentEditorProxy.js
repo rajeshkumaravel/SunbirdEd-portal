@@ -14,6 +14,9 @@ const isAPIWhitelisted = require('../helpers/apiWhiteList');
 module.exports = function (app) {
 
   const proxyReqPathResolverMethod = function (req) {
+    if(req.path.indexOf('/hierarchy/') > -1) {
+      console.log('contentProxyUrl + req.originalUrl).path ========== ', require('url').parse(contentProxyUrl + req.originalUrl).path); // TODO: log!
+    }
     return require('url').parse(contentProxyUrl + req.originalUrl).path
   }
   app.use('/plugins/v1/search', proxy(contentServiceBaseUrl, {
@@ -49,9 +52,6 @@ module.exports = function (app) {
     proxyReqOptDecorator: proxyUtils.decorateRequestHeaders(contentProxyUrl),
     proxyReqPathResolver: proxyReqPathResolverMethod
   }))
-
-  // Log telemetry for action api's
-  app.all('/action/*', isAPIWhitelisted.isAllowed(), telemetryHelper.generateTelemetryForProxy)
 
   app.use('/action/content/v3/unlisted/publish/:contentId',
     bodyParser.json(),
@@ -142,9 +142,10 @@ module.exports = function (app) {
       userResDecorator: userResDecorator
     })
   )
-
-  app.use('/action/*',
+  app.all('/action/*',
+  bodyParser.json(),
   isAPIWhitelisted.isAllowed(),
+  telemetryHelper.generateTelemetryForProxy,
   proxy(contentProxyUrl, {
     preserveHostHdr: true,
     limit: reqDataLimitOfContentUpload,
