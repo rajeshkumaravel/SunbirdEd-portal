@@ -1,27 +1,30 @@
-import { LocationService } from '../..';
 import { FieldConfig, FieldConfigOptionsBuilder } from 'common-form-elements';
 import { Location as SbLocation } from '@project-sunbird/client-services/models/location';
 import { FormControl } from '@angular/forms';
-import { defer, of } from 'rxjs';
+import { defer, merge, of } from 'rxjs';
 import { distinctUntilChanged, startWith, switchMap, tap } from 'rxjs/operators';
 import * as _ from 'lodash-es';
 
+import { LocationService } from '../../services/location/location.service';
+import { UserService } from '../../../../modules/core/services/user/user.service';
+
 export class SbFormLocationOptionsFactory {
+  private userLocationCache: {[request: string]: SbLocation[] | undefined} = {};
+
   constructor(
-    private locationService: LocationService
+    private locationService: LocationService,
+    private userService: UserService
   ) {}
 
   buildStateListClosure(config: FieldConfig<any>, initial = false): FieldConfigOptionsBuilder<SbLocation> {
     return (formControl: FormControl, __: FormControl, notifyLoading, notifyLoaded) => {
       return defer(async () => {
         notifyLoading();
-        return await this.locationService.getUserLocation({
+        return this.fetchUserLocation({
           filters: {
             type: 'state',
           }
-        }).toPromise()
-          .then((response) => response.result.response)
-          .then((stateLocationList: SbLocation[]) => {
+        }).then((stateLocationList: SbLocation[]) => {
             notifyLoaded();
             const list = stateLocationList.map((s) => ({ label: s.name, value: s }));
             if (config.default && initial) {
@@ -56,32 +59,43 @@ export class SbFormLocationOptionsFactory {
         startWith(contextFormControl.value),
         distinctUntilChanged((a: SbLocation, b: SbLocation) => JSON.stringify(a) === JSON.stringify(b)),
         tap(() => {
-          if (formControl.value && !initial) {
-            formControl.patchValue(null);
+          if (formControl.value) {
+            formControl.patchValue(null, { onlySelf: true, emitEvent: false });
           }
+        }),
+        distinctUntilChanged((a: SbLocation, b: SbLocation) => {
+          return !!(!a && !b ||
+            !a && b ||
+            !b && a ||
+            a.code === b.code);
         }),
         switchMap(async (value) => {
           if (!value) {
             return [];
           }
           notifyLoading();
-          return await this.locationService.getUserLocation({
+          return this.fetchUserLocation({
             filters: {
               type: locationType,
               ...(contextFormControl ? {
                 parentId: (contextFormControl.value as SbLocation).id
               } : {})
             }
-          }).toPromise()
-            .then((response) => response.result.response)
-            .then((locationList: SbLocation[]) => {
+          }).then((locationList: SbLocation[]) => {
               notifyLoaded();
               const list = locationList.map((s) => ({ label: s.name, value: s }));
-              if (config.default && initial) {
+              // school is fetched from userProfile.organisation instead of userProfile.userLocations
+              if (config.code === 'school' && initial && !formControl.value) {
+                const option = list.find((o) => {
+                    return (_.get(this.userService, 'userProfile.organisations') || []).find((org) => org.orgName === o.label);
+                });
+                formControl.patchValue(option ? option.value : null, { emitModelToViewChange: false });
+              } else if (config.default && initial && !formControl.value) {
                 const option = list.find((o) => o.value.id === config.default.id || o.label === config.default.name);
                 formControl.patchValue(option ? option.value : null, { emitModelToViewChange: false });
                 config.default['code'] = option ? option.value['code'] : config.default['code'];
               }
+              initial = false;
               return list;
             })
             .catch((e) => {
@@ -92,5 +106,20 @@ export class SbFormLocationOptionsFactory {
         })
       );
     };
+  }
+
+  private async fetchUserLocation(request: any): Promise<SbLocation[]> {
+    const serialized = JSON.stringify(request);
+
+    if (this.userLocationCache[serialized]) {
+      return this.userLocationCache[serialized];
+    }
+
+    return this.locationService.getUserLocation(request).toPromise()
+      .then((response) => {
+        const result = response.result.response;
+        this.userLocationCache[serialized] = result;
+        return result;
+      });
   }
 }

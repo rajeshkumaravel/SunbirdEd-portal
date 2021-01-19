@@ -2,7 +2,7 @@ import { Route } from '@angular/compiler/src/core';
 import { Router } from '@angular/router';
 import { UserService, DeviceRegisterService, FormService } from '../../../../modules/core/services';
 import { ResourceService, ToasterService, NavigationHelperService, ServerResponse } from '@sunbird/shared';
-import { TelemetryService } from '@sunbird/telemetry';
+import { IInteractEventInput, ILogEventInput, TelemetryService } from '@sunbird/telemetry';
 import { PopupControlService } from '../../../../service/popup-control.service';
 import { LocationService } from '../..';
 import { LocationSelectionComponent } from './location-selection.component';
@@ -30,7 +30,12 @@ describe('LocationSelectionComponent', () => {
             }
         }
     } as any;
-    const mockTelemetryService: Partial<TelemetryService> = {};
+    const mockTelemetryService: Partial<TelemetryService> = {
+      log(logEventInput: ILogEventInput) {
+      },
+      interact(interactEventInput: IInteractEventInput) {
+      }
+    };
     const mockToasterService: Partial<ToasterService> = {
         error(): string {
             return 'sample-message';
@@ -106,6 +111,20 @@ describe('LocationSelectionComponent', () => {
         expect(locationSelectionComponent['sbFormLocationSelectionDelegate'].destroy).toHaveBeenCalledWith();
     });
 
+    describe('clearUserLocationSelections', () => {
+        it('should delegate to SbFormLocationSelectionDelegate', async () => {
+          // arrange
+          spyOn(locationSelectionComponent['sbFormLocationSelectionDelegate'], 'clearUserLocationSelections').and
+            .returnValue(Promise.resolve(undefined));
+          spyOn(mockTelemetryService, 'interact').and.callThrough();
+          // act
+          await locationSelectionComponent.clearUserLocationSelections();
+          // assert
+          expect(locationSelectionComponent['sbFormLocationSelectionDelegate'].clearUserLocationSelections).toHaveBeenCalled();
+          expect(mockTelemetryService.interact).toHaveBeenCalled();
+        });
+    });
+
     describe('updateUserLocation', () => {
         it('should update user profile', async () => {
             // arrange
@@ -128,16 +147,11 @@ describe('LocationSelectionComponent', () => {
             // assert
             expect(locationSelectionComponent.userService.loggedIn).toBeTruthy();
             expect(locationSelectionComponent['sbFormLocationSelectionDelegate'].updateUserLocation).toHaveBeenCalled();
-            expect(mockLocationService.updateProfile).toHaveBeenCalledWith({
-                userId: 'sample-user-id',
-                firstName: locationSelectionComponent['sbFormLocationSelectionDelegate'].formGroup.value.name,
-                userType: locationSelectionComponent['sbFormLocationSelectionDelegate'].formGroup.value.persona
-            });
         });
 
-        it('should be unable update user profile', async () => {
+        it('should handle update user profile failures gracefully', async () => {
             spyOn(locationSelectionComponent['sbFormLocationSelectionDelegate'], 'updateUserLocation').and
-                .returnValue(Promise.resolve([{}]));
+                .returnValue(Promise.reject({}));
             locationSelectionComponent.userService = {
                 loggedIn: true,
                 userid: 'sample-user-id',
@@ -148,7 +162,6 @@ describe('LocationSelectionComponent', () => {
                     persona: 'teacher'
                 }
             } as any;
-            spyOn(mockLocationService, 'updateProfile').and.returnValue(throwError({}));
             spyOn(locationSelectionComponent, 'closeModal').and.callFake(() => {});
             spyOn(mockToasterService, 'error').and.returnValue('unable to load sample data');
             // act
@@ -156,12 +169,47 @@ describe('LocationSelectionComponent', () => {
             // assert
             expect(locationSelectionComponent.userService.loggedIn).toBeTruthy();
             expect(locationSelectionComponent['sbFormLocationSelectionDelegate'].updateUserLocation).toHaveBeenCalled();
-            expect(mockLocationService.updateProfile).toHaveBeenCalledWith({
-                userId: 'sample-user-id',
-                firstName: locationSelectionComponent['sbFormLocationSelectionDelegate'].formGroup.value.name,
-                userType: locationSelectionComponent['sbFormLocationSelectionDelegate'].formGroup.value.persona
-            });
             expect(mockToasterService.error).toHaveBeenCalledWith(mockResourceService.messages.fmsg.m0049);
         });
+
+      it('should generate appropriate telemetry for update user profile', async () => {
+        // arrange
+        spyOn(mockTelemetryService, 'log').and.callThrough();
+        spyOn(mockTelemetryService, 'interact').and.callThrough();
+        spyOn(locationSelectionComponent['sbFormLocationSelectionDelegate'], 'updateUserLocation').and
+          .returnValue(Promise.resolve({
+            changes: 'name::changed-persona::changed', deviceProfile: 'success', userProfile: 'success'
+          }));
+        locationSelectionComponent.userService = {
+          loggedIn: true,
+          userid: 'sample-user-id',
+        } as any;
+        locationSelectionComponent['sbFormLocationSelectionDelegate'].formGroup = {
+          value: {
+            name: 'sample-name',
+            persona: 'teacher'
+          }
+        } as any;
+        spyOn(mockLocationService, 'updateProfile').and.returnValue(of({}));
+        spyOn(locationSelectionComponent, 'closeModal').and.callFake(() => {});
+        // act
+        await locationSelectionComponent.updateUserLocation();
+        // assert
+        expect(mockTelemetryService.log).toHaveBeenCalledTimes(2);
+        expect(mockTelemetryService.interact).toHaveBeenCalledTimes(1);
+        expect(mockTelemetryService.interact).toHaveBeenCalledWith(
+          jasmine.objectContaining({
+            context: (
+              {
+                env: 'user-location', cdata: [({id: 'user:location_capture', type: 'Feature'}), ({
+                  id: 'SB-21152',
+                  type: 'Task'
+                })]
+              }),
+            edata: ({id: 'submit-clicked', type: 'location-changed', subtype: 'name::changed-persona::changed'}),
+            object: [({id: 'user:location_capture', type: 'Feature'}), ({id: 'SB-21152', type: 'Task'})]
+          })
+        );
+      });
     });
 });
